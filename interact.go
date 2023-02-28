@@ -5,7 +5,7 @@ package main
  * Interact with an implant
  * By J. Stuart McMurray
  * Created 20230224
- * Last Modified 20230225
+ * Last Modified 20230228
  */
 
 import (
@@ -112,20 +112,36 @@ func watchOutput(id, logfile string, ech chan<- error) {
 		return
 	}
 
-	/* Prefix for task queue messages. */
-	taskQPrefix := []byte(fmt.Sprintf("%s %q", TaskMessagePrefix, id))
-
 	/* Watch for output and callback lines. */
-	scanner := bufio.NewScanner(tailo)
-	for scanner.Scan() {
-		watchOutputLine(id, taskQPrefix, scanner.Bytes())
-	}
-	if err := scanner.Err(); nil != err {
-		ech <- fmt.Errorf("tailing logfile: %w", err)
-	}
+	var (
+		/* Prefix for task queue messages. */
+		taskQPrefix = []byte(fmt.Sprintf(
+			"%s %q",
+			TaskMessagePrefix,
+			id,
+		))
+		reader = bufio.NewReader(tailo)
+		buf    bytes.Buffer
+	)
+	for {
+		/* Get a full line.  These get big. */
+		buf.Reset()
+		for {
+			l, prefix, err := reader.ReadLine()
+			if nil != err {
+				ech <- fmt.Errorf("tailing logfile: %w", err)
+				return
+			}
+			buf.Write(l)
+			if !prefix {
+				break
+			}
 
-	/* Just a normal EOF. */
-	ech <- nil
+		}
+
+		/* Print the output nicely. */
+		watchOutputLine(id, taskQPrefix, buf.Bytes())
+	}
 }
 
 // watchOutputLine processes a single log line.
