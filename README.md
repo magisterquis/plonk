@@ -47,6 +47,9 @@ With a [typical Go installation](https://golang.org/...):
 go install github.com/magisterquis/plonk@latest
 ```
 
+Alternatively, Plonk for several architectures may be built with
+[`build.sh`](./build.sh).
+
 Static And Default Files
 ------------------------
 Static files placed in `plonk.d/files` will be served under the path `/f`, e.g.
