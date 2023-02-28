@@ -79,10 +79,10 @@ type selfSignedCert struct {
 	cert    *tls.Certificate
 }
 
-// Empty the local cache when we get a SIGHUP.  This makes it possible to
-// update certs manually without downtime.  On SIGUSR1, write the cached
-// self-signed certs to disk.
-func init() {
+// TLSSignals empties the local cache when we get a SIGHUP.  This makes it
+// possible to update certs manually without downtime.  On SIGUSR1, write the
+// cached self-signed certs to disk.
+func TLSSignals() {
 	/* Cert-forgetting. */
 	hupch := make(chan os.Signal, 1)
 	signal.Notify(hupch, unix.SIGHUP)

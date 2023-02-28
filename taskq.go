@@ -5,7 +5,7 @@ package main
  * Read and write the task queue.
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230225
+ * Last Modified 20230228
  */
 
 import (
@@ -31,15 +31,8 @@ var (
 	taskC = sync.NewCond(new(sync.Mutex))
 )
 
-// OpenTaskFile opens the taskfile and keeps it available via ReadQ/WriteQ.  It
-// then waits for SIGHUPs, upon receipt of which it reopens the taskfile.  If
-// it can't open the taskfile on SIGHUP, it'll log a warning and wait for
-// another SIGHUP.
-func OpenTaskFile(taskfile string) error {
-	if err := reopenTaskFile(taskfile); nil != err {
-		return err
-	}
-
+// TaskQSignals reopenes the taskfile on SIGHUP.
+func TaskQSignals() {
 	/* Reopen on SIGHUP. */
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, unix.SIGHUP)
@@ -47,12 +40,12 @@ func OpenTaskFile(taskfile string) error {
 	go func() {
 		for range ch {
 			/* Got a SIGHUP, close and reopen file. */
-			if err := reopenTaskFile(taskfile); nil != err {
+			if err := ReopenTaskFile(); nil != err {
 				log.Printf(
 					"[%s] Re-opening taskfile "+
 						"%q on SIGHUP: %s",
 					MessageTypeError,
-					taskfile,
+					AbsPath(Env.TaskFile),
 					err,
 				)
 				continue
@@ -60,17 +53,15 @@ func OpenTaskFile(taskfile string) error {
 			log.Printf(
 				"[%s] Re-opened taskfile %s",
 				MessageTypeSIGHUP,
-				taskfile,
+				AbsPath(Env.TaskFile),
 			)
 		}
 	}()
-
-	return nil
 }
 
-// reopenTaskFile closes the taskfile if it's open and re-opens it.  It then
+// ReopenTaskFile closes the taskfile if it's open and re-opens it.  It then
 // wakes up any thread waiting on taskC.
-func reopenTaskFile(taskfile string) error {
+func ReopenTaskFile() error {
 	taskC.L.Lock()
 	defer taskC.L.Unlock()
 
@@ -81,7 +72,7 @@ func reopenTaskFile(taskfile string) error {
 
 	/* Try to open the new one. */
 	var err error
-	taskF, err = os.OpenFile(taskfile, os.O_RDWR|os.O_CREATE, 0660)
+	taskF, err = os.OpenFile(Env.TaskFile, os.O_RDWR|os.O_CREATE, 0660)
 	if nil != err {
 		return err
 	}

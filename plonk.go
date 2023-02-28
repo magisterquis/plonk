@@ -351,8 +351,8 @@ Options:
 		AbsPath(Env.LECertDir),
 	)
 
-	/* Set up the files. */
-	if err := OpenTaskFile(Env.TaskFile); nil != err {
+	/* Set up the files.  Naming is hard. */
+	if err := ReopenTaskFile(); nil != err {
 		log.Fatalf(
 			"[%s] Opening taskfile (%s) %q: %s",
 			MessageTypeError,
@@ -452,6 +452,11 @@ Options:
 		MessageTypeInfo,
 		AbsPath(Env.DefaultFile),
 	)
+
+	/* Watch for Signal. */
+	go LogSignals()
+	go TaskQSignals()
+	go TLSSignals()
 
 	/* Actually serve requests. */
 	type serr struct {

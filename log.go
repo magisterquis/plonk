@@ -47,8 +47,8 @@ var (
 	seenIDsL sync.Mutex
 )
 
-// Delete all seenIDs on SIGHUP
-func init() {
+// LogSignals deletes all seenIDs on SIGHUP.
+func LogSignals() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, unix.SIGHUP)
 	go func() {
