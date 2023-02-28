@@ -75,6 +75,9 @@ with an IDless implant, `-task -` and `-interact -` may be used.  If more than
 one implant doesn't provide an ImplantID, tasking will go to whichever asks
 first.
 
+There are a few low-effort implants in
+[`implant_ideas.md`](./implant_ideas.md).
+
 Signals
 -------
 Plonk listens for two Signals, SIGHUP and SIGUSR1.
