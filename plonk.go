@@ -6,7 +6,7 @@ package main
  * Simple HTTP-based file/C2 server
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230225
+ * Last Modified 20230228
  */
 
 import (
@@ -23,8 +23,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
-
-	"github.com/magisterquis/plonk/internal/debug"
 )
 
 // Default paths, compile-time settable.
@@ -114,28 +112,85 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(
 			os.Stderr,
-			`Usage: %s                      [options]
-       %s -task    implantID|- [task...]
-       %s -implant implantID|-
+			`Usage: %s [options]
 
-Simple HTTP-based file/C2 server.
+  HTTP(s)-based static file and rudimentary C2 server.
 
-TODO: Usage example
+  Upon starting, Plonk will make a directory (-work-dir, currently %s),
+  chdir into it, and make other supporting files and directories.  The names of
+  these and several other things can be controlled with environment variables,
+  listable with -print-env.
 
-TODO: Task docs
+  TLS certificates may, in order of preference, be automatically provisioned
+  using Let's Encrypt (-letsencrypt*), stored as pairs of
+  %s/%s/domain.tld.{crt,key}, or failing that, generated as
+  self-signed certificates.
 
-Do not use -letsencrypt unless you accept Let's Encrypt's Terms of Service.
+  Do not use -letsencrypt unless you accept Let's Encrypt's Terms of Service.
+  
+  Files and directories under %s/%s/ will served when Plonk gets a
+  request for a path under /%s/.
+
+  C2 tasking is retrieved by a request to /%s/<ImplantID>.  The /<ImplantID>
+  may be empty; Plonk treats this as an IDless implant.  Tasking is stored in a
+  single JSON file (currently %s/%s), which may be updated by
+  hand or with -task or -implant, as below.  Plonk doesn't do anything to
+  process tasking; whatever it gets it sends directly to the implant.
+
+  Output from implants is sent in an HTTP request body to /%s/<ImplantID>, or
+  just /%s for an IDless implant.
+
+  HTTP verbs for all requests are ignored.  HTTP requests for paths other than
+  the above are served a single static file, by default %s/%s.
+
+  All of the above is logged in %s/%s.  
+
+  When Plonk gets a SIGHUP, it reopens the taskfile and forgets the self-signed
+  certificates it's generated as well as its list of seen implants.
+
+  The first time Plonk is run, it is helpful to use -verbose.
+
+Usage: %s -task implantID|- [task...]
+
+  Adds a task for the given implant, or - for the IDless implant.  This
+  invocation af Plonk must be run with the same idea of the tasking file
+  (currently %s/%s) as the server process.
+
+Usage: %s -implant implantID|-
+
+  Interactive(ish) operation.  Given an implant ID (or - for the IDlessimplant)
+  it queues as tasking non-blank, non #-prefixed lines it reads on standard
+  input and displays relevant logfile lines on standard output.  Probably best
+  used with rlwrap.  Like -task, this invocation of Plonk must be run with the
+  same idea of the tasking file (currently %s/%s) as well as the
+  logfile (currently %s/%s).
 
 Options:
 `,
+			/* Server help */
 			os.Args[0],
+			*workDir,
+			*workDir, Env.LocalCertDir,
+			*workDir, Env.StaticFilesDir,
+			Env.FilesPrefix,
+			Env.TaskPrefix,
+			*workDir, Env.TaskFile,
+			Env.OutputPrefix, Env.OutputPrefix,
+			*workDir, Env.DefaultFile,
+			*workDir, Env.LogFile,
+
+			/* -task help */
 			os.Args[0],
+			*workDir, Env.TaskFile,
+
+			/* -implant help */
 			os.Args[0],
+			*workDir, Env.TaskFile,
+			*workDir, Env.LogFile,
 		)
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	debug.TODO("Document better")
 
 	/* If we're just printing the environment, life's easy. */
 	if *printEnv {
