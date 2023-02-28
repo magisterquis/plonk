@@ -50,6 +50,9 @@ var (
 	a different ID than the one specified. */
 	errWrongID = errors.New("wrong ID")
 
+	/* errReady is a pseudoerror indicating the output-watcher's ready. */
+	errReady = errors.New("ready")
+
 	/* taskRE gets the interesting parts of a task message, after the
 	ID-specific prefix is removed. */
 	taskQRE = regexp.MustCompile(`\(qlen (\d+)\): (.*)`)
@@ -67,8 +70,23 @@ func Interact(id, logfile string) error {
 
 	/* Start both input and output going, and wait for something to die. */
 	ech := make(chan error)
+	start := make(chan struct{})
 	go interactiveTasking(id, ech)
-	go watchOutput(id, logfile, ech)
+	go watchOutput(id, logfile, ech, start)
+
+	/* Wait for the output-watcher to be ready and welcome the user. */
+	if err := <-ech; !errors.Is(err, errReady) {
+		return err
+	}
+	if "" == id {
+		log.Printf(
+			"Welcome.  Going interactive with the IDless implant.",
+		)
+	} else {
+		log.Printf("Welcome.  Going interactive with %s.", id)
+	}
+	close(start)
+
 	return <-ech
 }
 
@@ -97,7 +115,7 @@ func interactiveTasking(id string, ech chan<- error) {
 }
 
 // watchOutput watches the logfile for output and sends it to stdout.
-func watchOutput(id, logfile string, ech chan<- error) {
+func watchOutput(id, logfile string, ech chan<- error, start <-chan struct{}) {
 	/* Tail the logfile.  It'd be nice if there were a native Go way to do
 	this. */
 	tail := exec.Command("tail", "-f", logfile)
@@ -111,6 +129,11 @@ func watchOutput(id, logfile string, ech chan<- error) {
 		ech <- fmt.Errorf("starting tail: %w", err)
 		return
 	}
+
+	/* Let our caller know we're ready and wait for him to welcome the
+	user. */
+	ech <- errReady
+	<-start
 
 	/* Watch for output and callback lines. */
 	var (
