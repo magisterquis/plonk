@@ -5,7 +5,7 @@ package main
  * TLS config and cert-handling
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230225
+ * Last Modified 20230228
  */
 
 import (
@@ -21,6 +21,7 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"net/netip"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -64,34 +65,68 @@ const (
 
 var (
 	// localCache caches certs we've read from disk.
-	localCache  = make(map[string]*tls.Certificate)
-	localCacheL sync.Mutex
+	localCache       = make(map[string]*tls.Certificate)
+	localCacheL      sync.Mutex
+	selfSignedCache  = make(map[string]selfSignedCert)
+	selfSignedCacheL sync.Mutex
 )
 
+// selfSignedCert holds a self-signed cert we've generated, plus the PEM form
+// in case we want to write to a file.
+type selfSignedCert struct {
+	certPEM []byte
+	keyPEM  []byte
+	cert    *tls.Certificate
+}
+
 // Empty the local cache when we get a SIGHUP.  This makes it possible to
-// update certs manually without downtime.
+// update certs manually without downtime.  On SIGUSR1, write the cached
+// self-signed certs to disk.
 func init() {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, unix.SIGHUP)
+	/* Cert-forgetting. */
+	hupch := make(chan os.Signal, 1)
+	signal.Notify(hupch, unix.SIGHUP)
 	go func() {
-		for range ch {
+		for range hupch {
 			localCacheL.Lock()
-			n := len(localCache)
+			selfSignedCacheL.Lock()
+			n := len(localCache) + len(selfSignedCache)
 			maps.Clear(localCache)
+			maps.Clear(selfSignedCache)
 			localCacheL.Unlock()
-			log.Printf(
-				"[%s] Forgot %d certificates cached in memory",
-				MessageTypeSIGHUP,
-				n,
-			)
+			selfSignedCacheL.Unlock()
+			if 0 != n {
+				log.Printf(
+					"[%s] Forgot %d certificates "+
+						"cached in memory",
+					MessageTypeSIGHUP,
+					n,
+				)
+			} else {
+				log.Printf(
+					"[%s] No certificates "+
+						"cached in memory",
+					MessageTypeSIGHUP,
+				)
+			}
 		}
 	}()
+
+	/* Cert-writing. */
+	usr1ch := make(chan os.Signal, 1)
+	signal.Notify(usr1ch, unix.SIGUSR1)
+	go func() {
+		for range usr1ch {
+			go saveSelfSignedCerts()
+		}
+	}()
+
 }
 
 // MakeTLSConfig makes a TLS config which tries to get certificates from
 // the cache directory, failing that from Let's Encrypt for the domains in
 // leDomains, and failing that generates a self-signed cert.
-func MakeTLSConfig(leDomains []string, certDir, leEmail, leCacheDir string, leStaging bool) *tls.Config {
+func MakeTLSConfig(leDomains, wlDomains []string, leEmail string, leStaging bool) *tls.Config {
 	/* Roll a config for Let's Encrypt. */
 	mgr := autocert.Manager{
 		Prompt:     autocert.AcceptTOS,
@@ -99,6 +134,7 @@ func MakeTLSConfig(leDomains []string, certDir, leEmail, leCacheDir string, leSt
 		Email:      leEmail,
 	}
 	/* Staging changes a few things. */
+	leCacheDir := Env.LECertDir
 	if leStaging {
 		leCacheDir = filepath.Join(leCacheDir, stagingCacheDir)
 		mgr.Client = &acme.Client{
@@ -106,6 +142,8 @@ func MakeTLSConfig(leDomains []string, certDir, leEmail, leCacheDir string, leSt
 		}
 		mgr.Client = &acme.Client{DirectoryURL: stagingURL}
 	}
+	leCacheDir = AbsPath(leCacheDir)
+
 	/* Now that we're sure of the cache directory, set the cache. */
 	mgr.Cache = autocert.DirCache(leCacheDir)
 
@@ -134,11 +172,31 @@ func MakeTLSConfig(leDomains []string, certDir, leEmail, leCacheDir string, leSt
 			return cert, nil
 		}
 
-		/* For our own certs, make sure the domain is dotless. */
-		d := strings.Trim(chi.ServerName, ".")
+		/* For our own certs, try to get a domain name or at least an
+		IP address, or maybe just "default". */
+		var d string
+		if d = strings.Trim(chi.ServerName, "."); "" != d {
+			/* Use SNI */
+		} else if aper, ok := chi.Conn.LocalAddr().(interface {
+			AddrPort() netip.AddrPort
+		}); ok {
+			/* Use IP address. */
+			d = strings.Trim(
+				aper.AddrPort().Addr().Unmap().String(),
+				".",
+			)
+		} else if d = strings.Trim(
+			chi.Conn.LocalAddr().String(),
+			".",
+		); "" != d {
+			/* Use the local address, whatever it is. */
+		} else {
+			/* We tried. */
+			d = defaultSNI
+		}
 
 		/* If we can get the cert from disk, do so. */
-		cert, err := getLocalCert(certDir, d)
+		cert, err := getLocalCert(d)
 		if nil != err {
 			return nil, fmt.Errorf("getting local cert: %w", err)
 		} else if nil != cert {
@@ -146,7 +204,7 @@ func MakeTLSConfig(leDomains []string, certDir, leEmail, leCacheDir string, leSt
 		}
 
 		/* Don't have files, either.  Roll our own. */
-		cert, err = getSelfSigned(certDir, d)
+		cert, err = getSelfSigned(d, wlDomains)
 		if nil != err {
 			return nil, fmt.Errorf(
 				"getting self-signed cert: %w",
@@ -164,18 +222,22 @@ func MakeTLSConfig(leDomains []string, certDir, leEmail, leCacheDir string, leSt
 
 // certAndKeyFilenames returns filenames for a non-Let's Encrypt cert and key
 // for the given domain.
-func certAndKeyFilenames(certDir, d string) (certF, keyF string) {
+func certAndKeyFilenames(d string) (certF, keyF string) {
 	if "" == d {
 		d = defaultSNI
+		log.Printf(
+			"[%s] BUG: Got no SNI",
+			MessageTypeError,
+		)
 	}
-	f := filepath.Join(certDir, d)
-	return f + certFileSuffix, f + keyFileSuffix
+	f := filepath.Join(Env.LocalCertDir, d)
+	return AbsPath(f + certFileSuffix), AbsPath(f + keyFileSuffix)
 }
 
 // getLocalCert gets a cert either from the cache or tries to read it from
 // disk.  If there's no cert but no other errors occurred, getLocalCert returns
 // (nil, nil).
-func getLocalCert(certDir, d string) (*tls.Certificate, error) {
+func getLocalCert(d string) (*tls.Certificate, error) {
 	localCacheL.Lock()
 	defer localCacheL.Unlock()
 
@@ -185,7 +247,7 @@ func getLocalCert(certDir, d string) (*tls.Certificate, error) {
 	}
 
 	/* If we have it as a file, get it. */
-	certF, keyF := certAndKeyFilenames(certDir, d)
+	certF, keyF := certAndKeyFilenames(d)
 	cert, err := tls.LoadX509KeyPair(certF, keyF)
 	if nil == err { /* Happy path. */
 		localCache[d] = &cert
@@ -206,14 +268,39 @@ func getLocalCert(certDir, d string) (*tls.Certificate, error) {
 
 // getSelfSigned gets a self-signed cert for the domain d.  If there is no
 // cached cert, it generates one.
-func getSelfSigned(certDir, d string) (*tls.Certificate, error) {
-	localCacheL.Lock()
-	defer localCacheL.Unlock()
+func getSelfSigned(d string, wlDomains []string) (*tls.Certificate, error) {
+	selfSignedCacheL.Lock()
+	defer selfSignedCacheL.Unlock()
 
 	/* If we already have a cert, life's easy. */
-	c, ok := localCache[d]
+	c, ok := selfSignedCache[d]
 	if ok {
-		return c, nil
+		return c.cert, nil
+	}
+
+	/* If we're whitelisting, make sure this one's allowed. */
+	if 0 != len(wlDomains) {
+		var found bool
+		for _, wlD := range wlDomains {
+			if matched, err := filepath.Match(wlD, d); nil != err {
+				log.Printf(
+					"[%s] BUG: Uncaught invalid "+
+						"domain glob %q: %s",
+					MessageTypeError,
+					wlD,
+					err,
+				)
+			} else if matched {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf(
+				"domain not whitelisted: %s",
+				d,
+			)
+		}
 	}
 
 	/* We don't, so generate one. */
@@ -225,23 +312,10 @@ func getSelfSigned(certDir, d string) (*tls.Certificate, error) {
 	if nil != err {
 		return nil, fmt.Errorf("loading from PEM: %w", err)
 	}
-	localCache[d] = &cert
-
-	/* Save it for next time. */
-	certF, keyF := certAndKeyFilenames(certDir, d)
-	if err := os.WriteFile(certF, certP, 0660); nil != err {
-		return nil, fmt.Errorf(
-			"saving certificate to %q: %w",
-			certF,
-			err,
-		)
-	}
-	if err := os.WriteFile(keyF, keyP, 0600); nil != err {
-		return nil, fmt.Errorf(
-			"saving key to %q: %w",
-			keyF,
-			err,
-		)
+	selfSignedCache[d] = selfSignedCert{
+		certPEM: certP,
+		keyPEM:  keyP,
+		cert:    &cert,
 	}
 
 	if "" == d {
@@ -321,4 +395,58 @@ func generateCertAndKey(d string) (cert, key []byte, err error) {
 	)
 
 	return certb, keyb, nil
+}
+
+// saveSelfSignedCerts writes the cached self-signed certs to disk.
+func saveSelfSignedCerts() {
+	selfSignedCacheL.Lock()
+	defer selfSignedCacheL.Unlock()
+
+	/* Save ALL the certs. */
+	for name, cert := range selfSignedCache {
+		if err := saveSelfSignedCert(name, cert); nil != err {
+			log.Printf(
+				"[%s] Error saving self-signed cert "+
+					"for %q: %s",
+				MessageTypeError,
+				name,
+				err,
+			)
+		}
+	}
+}
+
+// saveSelfSignedCert saves the name's certificate in the local certs
+// directory.
+func saveSelfSignedCert(name string, cert selfSignedCert) error {
+	/* Work out where to save this thing. */
+	certF, keyF := certAndKeyFilenames(name)
+
+	/* Try to save it. */
+	if err := os.WriteFile(certF, cert.certPEM, 0660); nil != err {
+		return fmt.Errorf(
+			"saving certificate to %q: %w",
+			certF,
+			err,
+		)
+	}
+	if err := os.WriteFile(keyF, cert.keyPEM, 0600); nil != err {
+		os.Remove(certF) /* Best effort. */
+		return fmt.Errorf(
+			"saving key to %q: %w",
+			keyF,
+			err,
+		)
+	}
+
+	/* Tell the user what we did. */
+	log.Printf(
+		"[%s] Wrote keypair for %s to %s and %s",
+		MessageTypeTLS,
+		name,
+		certF,
+		keyF,
+	)
+
+	return nil
 }

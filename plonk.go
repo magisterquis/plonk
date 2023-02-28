@@ -49,7 +49,10 @@ func init() {
 }
 
 func main() {
-	var leDomains []string
+	var (
+		leDomains []string
+		wlDomains []string
+	)
 	var (
 		httpAddr = flag.String(
 			"http",
@@ -103,6 +106,16 @@ func main() {
 			return nil
 		},
 	)
+	flag.Func(
+		"whitelist-self-signed",
+		"Allow self-signed cert generation for the given "+
+			"(possibly wildcarded) `domain` or IP address (may "+
+			"be repeated, default *)",
+		func(d string) error {
+			wlDomains = append(wlDomains, d)
+			return nil
+		},
+	)
 	flag.BoolVar(
 		&VerbOn,
 		"verbose",
@@ -146,7 +159,9 @@ func main() {
   All of the above is logged in %s/%s.  
 
   When Plonk gets a SIGHUP, it reopens the taskfile and forgets the self-signed
-  certificates it's generated as well as its list of seen implants.
+  certificates it's generated as well as its list of seen implants.  When Plonk
+  gets a SIGUSR1, it writes the self-signed certificates it's generated to the
+  local certificate directory.
 
   The first time Plonk is run, it is helpful to use -verbose.
 
@@ -288,8 +303,21 @@ Options:
 	Verbosef(
 		"[%s] Logfile: %s",
 		MessageTypeInfo,
-		absPath(logFile.Name()),
+		AbsPath(logFile.Name()),
 	)
+
+	/* Make sure domain whitelist entries are valid globs. */
+	for _, wlD := range wlDomains {
+		_, err := filepath.Match(wlD, "")
+		if nil == err {
+			continue
+		}
+		log.Fatalf(
+			"[%s] Bad domain whitelist glob: %s",
+			MessageTypeError,
+			err,
+		)
+	}
 
 	/* Make directories. */
 	mkdir := func(p *string, which string) {
@@ -308,19 +336,19 @@ Options:
 	Verbosef(
 		"[%s] Static files directory: %s",
 		MessageTypeInfo,
-		absPath(Env.StaticFilesDir),
+		AbsPath(Env.StaticFilesDir),
 	)
 	mkdir(&Env.LocalCertDir, "TLS certificates")
 	Verbosef(
 		"[%s] Non-Let's Encrypt TLS certificates directory: %s",
 		MessageTypeInfo,
-		absPath(Env.LocalCertDir),
+		AbsPath(Env.LocalCertDir),
 	)
 	mkdir(&Env.LECertDir, "Let's Encrypt cache")
 	Verbosef(
 		"[%s] Let's Encrypt certificates directory: %s",
 		MessageTypeInfo,
-		absPath(Env.LECertDir),
+		AbsPath(Env.LECertDir),
 	)
 
 	/* Set up the files. */
@@ -336,7 +364,7 @@ Options:
 	Verbosef(
 		"[%s] Taskfile: %s",
 		MessageTypeInfo,
-		absPath(Env.TaskFile),
+		AbsPath(Env.TaskFile),
 	)
 	if f, err := os.OpenFile(
 		Env.DefaultFile,
@@ -422,7 +450,7 @@ Options:
 	Verbosef(
 		"[%s] Default file: %s",
 		MessageTypeInfo,
-		absPath(Env.DefaultFile),
+		AbsPath(Env.DefaultFile),
 	)
 
 	/* Actually serve requests. */
@@ -456,9 +484,8 @@ Options:
 	if "" != *httpsAddr {
 		httpsL, err := tls.Listen("tcp", *httpsAddr, MakeTLSConfig(
 			leDomains,
-			Env.LocalCertDir,
+			wlDomains,
 			*leEmail,
-			Env.LECertDir,
 			*leStaging,
 		))
 		if nil != err {
@@ -493,8 +520,8 @@ Options:
 	)
 }
 
-// absPath is like filepath.Abs, but uses workingDir as the working directory.
-func absPath(path string) string {
+// AbsPath is like filepath.Abs, but uses workingDir as the working directory.
+func AbsPath(path string) string {
 	if filepath.IsAbs(path) {
 		return filepath.Clean(path)
 	}

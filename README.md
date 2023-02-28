@@ -72,6 +72,23 @@ with an IDless implant, `-task -` and `-interact -` may be used.  If more than
 one implant doesn't provide an ImplantID, tasking will go to whichever asks
 first.
 
+Signals
+-------
+Plonk listens for two Signals, SIGHUP and SIGUSR1.
+
+SIGHUP causes the following:
+- Tasking file is closed and reopened.  This is useful for after editing it
+  with vim.
+- Certificates cached in memory are forgotten.  This is useful for manual
+  certificate updating with no downtime.
+- Seen implants are forgotten.  This is useful for logging the next callback
+  of an implant which has already called back without using `-verbose`.
+
+SIGUSR1 causes the following:
+- Generated self-signed certificates are written to disk.  This is useful for
+  restarting Plonk while an implant which checks a self-signed cert's
+  fingerprint is still running.
+
 Usage
 -----
 ```
@@ -95,18 +112,23 @@ Usage: plonk [options]
   request for a path under /f/.
 
   C2 tasking is retrieved by a request to /t/<ImplantID>.  The /<ImplantID>
-  may be empty; Plonk treats this as an IDless implant.  Tasking
-  is stored in plonk.d/tasking.json, which may be updated with -task or
-  -implant, as below.  Plonk doesn't do anything to process tasking; whatever
-  it gets it sends directly to the implant.
+  may be empty; Plonk treats this as an IDless implant.  Tasking is stored in a
+  single JSON file (currently plonk.d/tasking.json), which may be updated by
+  hand or with -task or -implant, as below.  Plonk doesn't do anything to
+  process tasking; whatever it gets it sends directly to the implant.
 
-  Output from implants is sent to /o/<ImplantID>, or just /o for an
-  IDless implant.
+  Output from implants is sent in an HTTP request body to /o/<ImplantID>, or
+  just /o for an IDless implant.
+
+  HTTP verbs for all requests are ignored.  HTTP requests for paths other than
+  the above are served a single static file, by default plonk.d/index.html.
 
   All of the above is logged in plonk.d/log.
 
   When Plonk gets a SIGHUP, it reopens the taskfile and forgets the self-signed
-  certificates it's generated as well as its list of seen implants.
+  certificates it's generated as well as its list of seen implants.  When Plonk
+  gets a SIGUSR1, it writes the self-signed certificates it's generated to the
+  local certificate directory.
 
   The first time Plonk is run, it is helpful to use -verbose.
 
@@ -144,6 +166,8 @@ Options:
     	Queue a task for the given implant ID or - for an IDless implant
   -verbose
     	Log ALL the things
+  -whitelist-self-signed domain
+    	Allow self-signed cert generation for the given (possibly wildcarded) domain or IP address (may be repeated, default *)
   -work-dir directory
     	Working directory (default "plonk.d")
 ```
