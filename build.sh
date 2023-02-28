@@ -8,6 +8,17 @@
 
 set -e
 
+if [[ "clean" == "$1" ]]; then
+        for f in plonk plonk-*-*; do
+                if [[ -f "$f" ]]; then
+                        set -x
+                        rm "$f"
+                        set +x
+                fi
+        done
+        exit 0
+fi
+
 set -x
 go version
 go test
