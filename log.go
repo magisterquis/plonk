@@ -5,7 +5,7 @@ package main
  * Handle logging
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230225
+ * Last Modified 20230228
  */
 
 import (
@@ -56,12 +56,19 @@ func init() {
 			seenIDsL.Lock()
 			n := len(seenIDs)
 			maps.Clear(seenIDs)
-			log.Printf(
-				"[%s] Forgot %d first-seen IDs",
-				MessageTypeSIGHUP,
-				n,
-			)
 			seenIDsL.Unlock()
+			if 0 == n {
+				log.Printf(
+					"[%s] No seen IDs",
+					MessageTypeSIGHUP,
+				)
+			} else {
+				log.Printf(
+					"[%s] Forgot %d seen IDs",
+					MessageTypeSIGHUP,
+					n,
+				)
+			}
 		}
 	}()
 }
