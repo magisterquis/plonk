@@ -182,8 +182,8 @@ Environment Variables
 ---------------------
 Plonk reads configuration from the following environment variables at runtime:
 
-Variable|Default|Description
--|-
+Variable               | Default       | Description
+-----------------------|---------------|------------
 `PLONK_DEFAULTFILE`    |`index.html`   | File served for otherwise-unhandled requests
 `PLONK_FILESPREFIX`    |`f`            | URL path prefix for requesting static files
 `PLONK_HTTPTIMEOUT`    |`1m`           | HTTP request timeout
