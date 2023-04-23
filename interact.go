@@ -5,7 +5,7 @@ package main
  * Interact with an implant
  * By J. Stuart McMurray
  * Created 20230224
- * Last Modified 20230228
+ * Last Modified 20230423
  */
 
 import (
@@ -16,17 +16,20 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
+// nInteractiveHistoryLines is the number of existing logfile lines to look at
+// when we go interactive.  This matches tail's default.
+const nInteractiveHistoryLines = 10
+
 var (
-	/* lineRE grabs the bits of lines which are important to interactive
+	/* LineRE grabs the bits of lines which are important to interactive
 	ops. */
-	lineRE = regexp.MustCompile(`^` +
+	LineRE = regexp.MustCompile(`^` +
 		`(\d{4}/\d\d/\d\d \d\d:\d\d:\d\d) ` + /* Time and date. */
 		`\[(` +
 		strings.Join([]string{
@@ -46,7 +49,7 @@ var (
 	actually have a payload. */
 	errNoPayload = errors.New("no payload")
 
-	/* errWrongID is returned by unmarshalRLog if the log message is for
+	/* errWrongID is returned by UnmarshalRLog if the log message is for
 	a different ID than the one specified. */
 	errWrongID = errors.New("wrong ID")
 
@@ -118,17 +121,23 @@ func interactiveTasking(id string, ech chan<- error) {
 func watchOutput(id, logfile string, ech chan<- error, start <-chan struct{}) {
 	/* Tail the logfile.  It'd be nice if there were a native Go way to do
 	this. */
-	tail := exec.Command("tail", "-f", logfile)
-	tailo, err := tail.StdoutPipe()
-	tail.Stderr = os.Stderr /* For just in case. */
+	reader, tail, err := TailLogfile(logfile, nInteractiveHistoryLines)
 	if nil != err {
-		ech <- fmt.Errorf("getting tail's stdout: %w", err)
+		ech <- err
 		return
 	}
-	if err := tail.Start(); nil != err {
-		ech <- fmt.Errorf("starting tail: %w", err)
-		return
-	}
+	defer func() {
+		err := tail.cmd.Wait()
+		if nil != err {
+			log.Fatalf(
+				"[%s] Tailing logfile %s: %s",
+				MessageTypeError,
+				logfile,
+				err,
+			)
+		}
+		log.Fatalf("[%s] Tail exited unexpectedly", MessageTypeError)
+	}()
 
 	/* Let our caller know we're ready and wait for him to welcome the
 	user. */
@@ -136,41 +145,27 @@ func watchOutput(id, logfile string, ech chan<- error, start <-chan struct{}) {
 	<-start
 
 	/* Watch for output and callback lines. */
-	var (
-		/* Prefix for task queue messages. */
-		taskQPrefix = []byte(fmt.Sprintf(
-			"%s %q",
-			TaskMessagePrefix,
-			id,
-		))
-		reader = bufio.NewReader(tailo)
-		buf    bytes.Buffer
-	)
+	var taskQPrefix = []byte(fmt.Sprintf(
+		"%s %q",
+		TaskMessagePrefix,
+		id,
+	))
 	for {
-		/* Get a full line.  These get big. */
-		buf.Reset()
-		for {
-			l, prefix, err := reader.ReadLine()
-			if nil != err {
-				ech <- fmt.Errorf("tailing logfile: %w", err)
-				return
-			}
-			buf.Write(l)
-			if !prefix {
-				break
-			}
-
+		/* Get the next line. */
+		line, err := reader.ReadLine()
+		if nil != err {
+			ech <- fmt.Errorf("tailing logfile: %w", err)
+			return
 		}
-
 		/* Print the output nicely. */
-		watchOutputLine(id, taskQPrefix, buf.Bytes())
+		watchOutputLine(id, taskQPrefix, line)
 	}
 }
 
 // watchOutputLine processes a single log line.
 func watchOutputLine(id string, taskQPrefix, line []byte) {
 	/* Get the important bits. */
-	ms := lineRE.FindSubmatch(line)
+	ms := LineRE.FindSubmatch(line)
 	if 4 != len(ms) {
 		return
 	}
@@ -221,11 +216,11 @@ func watchOutputLine(id string, taskQPrefix, line []byte) {
 	fmt.Printf("%s [%s] %s\n", ms[1], ms[2], strings.TrimRight(msg, "\n"))
 }
 
-// unmarshalRLog unmarshals the message from an RLog'd message.  Only the part
+// UnmarshalRLog unmarshals the message from an RLog'd message.  Only the part
 // of the log line after the [MessageType] should be passed in msg.  If, after
 // unmarshaling, v is as struct with an ID field which has a value other than
-// id, unmarshalRLog returns errWrongID.
-func unmarshalRLog(id string, v any, msg []byte) error {
+// id, UnmarshalRLog returns errWrongID.
+func UnmarshalRLog(id string, v any, msg []byte) error {
 	/* Get the JSON bit. */
 	parts := bytes.SplitN(msg, []byte{' '}, 5)
 	if 5 != len(parts) {
@@ -258,7 +253,7 @@ func unmarshalRLog(id string, v any, msg []byte) error {
 func parseCallbackLog(id string, payload []byte) (ok bool, msg string) {
 	/* Un-JSON. */
 	var tl TaskLog
-	if err := unmarshalRLog(id, &tl, payload); nil != err {
+	if err := UnmarshalRLog(id, &tl, payload); nil != err {
 		if errors.Is(err, errWrongID) {
 			return false, ""
 		}
@@ -290,7 +285,7 @@ func parseCallbackLog(id string, payload []byte) (ok bool, msg string) {
 func parseOutputLog(id string, payload []byte) (ok bool, msg string) {
 	/* Un-JSON. */
 	var ol OutputLog
-	if err := unmarshalRLog(id, &ol, payload); nil != err {
+	if err := UnmarshalRLog(id, &ol, payload); nil != err {
 		if errors.Is(err, errWrongID) {
 			return false, ""
 		}

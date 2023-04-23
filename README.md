@@ -138,20 +138,22 @@ Usage: plonk [options]
 
   The first time Plonk is run, it is helpful to use -verbose.
 
-Usage: plonk -task implantID|- [task...]
+Usage: plonk -task implantID|-|-next- [task...]
 
   Adds a task for the given implant, or - for the IDless implant.  This
   invocation af Plonk must be run with the same idea of the tasking file
-  (currently plonk.d/tasking.json) as the server process.
+  (currently plonk.d/tasking.json) as the server process.  The implantID may
+  also be -next- to automatically select the next implant which calls back.
 
-Usage: plonk -implant implantID|-
+Usage: plonk -interact implantID|-|-next-
 
   Interactive(ish) operation.  Given an implant ID (or - for the IDlessimplant)
   it queues as tasking non-blank, non #-prefixed lines it reads on standard
   input and displays relevant logfile lines on standard output.  Probably best
   used with rlwrap.  Like -task, this invocation of Plonk must be run with the
   same idea of the tasking file (currently plonk.d/tasking.json) as well as the
-  logfile (currently plonk.d/log).
+  logfile (currently plonk.d/log). The implantID may also be -next- to
+  automatically select the next implant which calls back.
 
 Options:
   -http address

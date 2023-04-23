@@ -6,7 +6,7 @@ package main
  * Simple HTTP-based file/C2 server
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230228
+ * Last Modified 20230423
  */
 
 import (
@@ -122,6 +122,7 @@ func main() {
 		VerbOn,
 		"Log ALL the things",
 	)
+	os.Args[0] = "plonk"
 	flag.Usage = func() {
 		fmt.Fprintf(
 			os.Stderr,
@@ -165,20 +166,22 @@ func main() {
 
   The first time Plonk is run, it is helpful to use -verbose.
 
-Usage: %s -task implantID|- [task...]
+Usage: %s -task implantID|-|%s [task...]
 
   Adds a task for the given implant, or - for the IDless implant.  This
   invocation af Plonk must be run with the same idea of the tasking file
-  (currently %s/%s) as the server process.
+  (currently %s/%s) as the server process.  The implantID may
+  also be %s to automatically select the next implant which calls back.
 
-Usage: %s -implant implantID|-
+Usage: %s -interact implantID|-|%s
 
   Interactive(ish) operation.  Given an implant ID (or - for the IDlessimplant)
   it queues as tasking non-blank, non #-prefixed lines it reads on standard
   input and displays relevant logfile lines on standard output.  Probably best
   used with rlwrap.  Like -task, this invocation of Plonk must be run with the
   same idea of the tasking file (currently %s/%s) as well as the
-  logfile (currently %s/%s).
+  logfile (currently %s/%s). The implantID may also be %s to
+  automatically select the next implant which calls back.
 
 Options:
 `,
@@ -195,13 +198,13 @@ Options:
 			*workDir, Env.LogFile,
 
 			/* -task help */
-			os.Args[0],
-			*workDir, Env.TaskFile,
+			os.Args[0], NextImplantID,
+			*workDir, Env.TaskFile, NextImplantID,
 
 			/* -implant help */
-			os.Args[0],
+			os.Args[0], NextImplantID,
 			*workDir, Env.TaskFile,
-			*workDir, Env.LogFile,
+			*workDir, Env.LogFile, NextImplantID,
 		)
 		flag.PrintDefaults()
 	}
@@ -384,6 +387,7 @@ Options:
 
 	/* If we're going interactive or just queuing a task, life's easy. */
 	if "" != *interact { /* Interact with an implant. */
+		UpdateWithNextIfNeeded(interact, logFile.Name())
 		if err := Interact(*interact, logFile.Name()); nil != err {
 			log.Fatalf(
 				"[%s] Interacting with %q: %s",
@@ -394,6 +398,7 @@ Options:
 		}
 		return
 	} else if "" != *queueTask { /* Queue a task */
+		UpdateWithNextIfNeeded(queueTask, logFile.Name())
 		/* Make the task a single string. */
 		t := strings.Join(flag.Args(), " ")
 		/* ID - really means "". */

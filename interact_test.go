@@ -5,7 +5,7 @@ package main
  * Tests for interact.go
  * By J. Stuart McMurray
  * Created 20230224
- * Last Modified 20230225
+ * Last Modified 20230423
  */
 
 import (
@@ -89,7 +89,7 @@ func TestUnmarshalRLog(t *testing.T) {
 		)
 
 		gotp := reflect.New(reflect.TypeOf(c.have)).Interface()
-		err = unmarshalRLog(c.id, gotp, []byte(logMsg))
+		err = UnmarshalRLog(c.id, gotp, []byte(logMsg))
 		got := reflect.ValueOf(gotp).Elem().Interface()
 
 		if !c.sameid && !errors.Is(err, errWrongID) {
