@@ -285,7 +285,7 @@ func parseCallbackLog(id string, payload []byte) (ok bool, msg string) {
 	}
 }
 
-// parseCallbackLog turns a callback log message into something human-friendly.
+// parseOutputLog turns an output log message into something human-friendly.
 // It returns false if the log isn't for the right id.
 func parseOutputLog(id string, payload []byte) (ok bool, msg string) {
 	/* Un-JSON. */
