@@ -5,7 +5,7 @@ package main
  * Config from environment variables
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230225
+ * Last Modified 20230423
  */
 
 import (
@@ -57,7 +57,7 @@ func EnvVarName(f *string) string {
 	return fmt.Sprintf("BUG: no field at %p in Env (%p)", f, &Env)
 }
 
-// ListEnv prints the environment variables and their current values to stdout.
+// PrintEnv prints the environment variables and their current values to stdout.
 func PrintEnv() {
 	var vs [][2]string
 

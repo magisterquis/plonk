@@ -5,7 +5,7 @@ package main
  * Read and write the task queue.
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230228
+ * Last Modified 20230423
  */
 
 import (
@@ -21,8 +21,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// TaskQueue holds the per-implant task queue.  There's probably a more
-// efficient way to do this.
+// TaskQ holds the per-implant task queue.  There's probably a more efficient
+// way to do this.
 type TaskQ map[string][]string
 
 // Task file.  Handlers share it, albeit with lots of disk I/O.
@@ -185,7 +185,7 @@ func writeAndUnlock(unMutex, unFlock bool, q TaskQ) error {
 
 // rewind resets taskF's file pointer to the beginning of the file.
 func rewind() error {
-	if _, err := taskF.Seek(0, os.SEEK_SET); nil != err {
+	if _, err := taskF.Seek(0, io.SeekStart); nil != err {
 		return fmt.Errorf(
 			"seeking to beginning: %w",
 			err,

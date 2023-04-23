@@ -4,7 +4,7 @@
 # Build plonk for a few platforms
 # By J. Stuart McMurray
 # Created 20230228
-# Last Modified 20230228
+# Last Modified 20230423
 
 set -e
 
@@ -23,6 +23,7 @@ set -x
 go version
 go test
 go vet
+staticcheck
 go generate
 go build -trimpath
 set +x

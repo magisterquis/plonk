@@ -5,7 +5,7 @@ package main
  * Handle logging
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230228
+ * Last Modified 20230423
  */
 
 import (
@@ -38,7 +38,7 @@ const (
 	MessageTypeUnknown  = "UNKNOWN"
 )
 
-// DefaultLoge is the default name of our logfile.
+// DefaultLog is the default name of our logfile.
 const DefaultLog = "log"
 
 var (
