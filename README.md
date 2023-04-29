@@ -50,6 +50,10 @@ go install github.com/magisterquis/plonk@latest
 Alternatively, Plonk for several architectures may be built with
 [`build.sh`](./build.sh).
 
+The [Makefile](./Makefile) will build Plonk for the current architecture or
+`$GOOS`/`$GOARCH`, as appropriate.  It is provided to accommodate muscle
+memory.
+
 Static And Default Files
 ------------------------
 Static files placed in `plonk.d/files` will be served under the path `/f`, e.g.
