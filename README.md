@@ -80,7 +80,8 @@ There are a few low-effort implants in
 
 Signals
 -------
-Plonk listens for two Signals, SIGHUP and SIGUSR1.
+Plonk, in server mode (not with `-task` or `-interact`) listens for two
+Signals, SIGHUP and SIGUSR1.
 
 SIGHUP causes the following:
 - Tasking file is closed and reopened.  This is useful for after editing it
@@ -94,6 +95,11 @@ SIGUSR1 causes the following:
 - Generated self-signed certificates are written to disk.  This is useful for
   restarting Plonk while an implant which checks a self-signed cert's
   fingerprint is still running.
+
+When using `-interact -next-` or `-task -next-` SIGHUP is silently ignored
+while waiting for the next callback to be logged.  This is to make it possible
+to `pkill plonk` to force already-known implant IDs to be logged again without
+causing the interactive process to terminate.
 
 Usage
 -----

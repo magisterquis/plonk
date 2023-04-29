@@ -5,7 +5,7 @@ package main
  * Tail the logfile
  * By J. Stuart McMurray
  * Created 20230423
- * Last Modified 20230423
+ * Last Modified 20230429
  */
 
 import (
@@ -17,9 +17,12 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strconv"
 	"sync/atomic"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 // NextImplantID is a placeholder implantID used to select the next implant
@@ -100,8 +103,19 @@ func killed(err error) bool {
 	return syscall.SIGKILL == ws.Signal()
 }
 
-// GetNextCallbackID gets the next callback ID from the logfile.
+// GetNextCallbackID gets the next callback ID from the logfile.  It catches
+// and ignores SIGHUP, to make 'pkill plonk' work without killing users of
+// -next-.  Before returning, it unregisteres its SIGHUP-catcher.
 func GetNextCallbackID(logfile string) (string, error) {
+	/* Catch and ignore SIGHUP.  No need to read from the channel, as the
+	send will be non-blocking anyway. */
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, unix.SIGHUP)
+	defer func() {
+		signal.Stop(ch)
+		close(ch)
+	}()
+
 	/* Watch the logfile for the next callback. */
 	reader, tail, err := TailLogfile(logfile, 0)
 	if nil != err {
