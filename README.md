@@ -4,6 +4,8 @@ Plonk is a little HTTP(s) server program you can just plonk down and use for
 quick'n'dirty C2ish infrastructure.  It serves static file and can serve
 rudimentary tasking and take output.
 
+For legal use only.
+
 Quickstart
 ----------
 1. Start the C2 server
