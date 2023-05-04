@@ -6,7 +6,7 @@ package main
  * Simple HTTP-based file/C2 server
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230423
+ * Last Modified 20230504
  */
 
 import (
@@ -420,7 +420,7 @@ Options:
 	}
 
 	/* Set up HTTP handlers.  This is a bit silly. */
-	handle := func(p *string, which string, h http.Handler) {
+	handle := func(p *string, which string, h http.Handler, bareOk bool) {
 		*p = "/" + strings.Trim(*p, "/")
 		if "/" == *p {
 			log.Fatalf(
@@ -435,18 +435,21 @@ Options:
 		h = http.TimeoutHandler(h, httpTimeout, "")
 		h = http.StripPrefix(*p, h)
 		http.Handle(*p+"/", h)
-		http.Handle(*p, h)
+		if bareOk {
+			http.Handle(*p, h)
+		}
 	}
 	handle(
 		&Env.FilesPrefix,
 		"static files",
 		LogHandler(http.FileServer(http.Dir(Env.StaticFilesDir))),
+		false,
 	)
-	handle(&Env.TaskPrefix, "task", http.HandlerFunc(HandleTask))
+	handle(&Env.TaskPrefix, "task", http.HandlerFunc(HandleTask), true)
 	handle(&Env.OutputPrefix, "output", http.MaxBytesHandler(
 		http.HandlerFunc(HandleOutput),
 		outputMax,
-	))
+	), true)
 	http.Handle("/", LogHandler(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, Env.DefaultFile)
