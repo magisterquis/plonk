@@ -5,7 +5,7 @@ package main
  * Tail the logfile
  * By J. Stuart McMurray
  * Created 20230423
- * Last Modified 20230429
+ * Last Modified 20230523
  */
 
 import (
@@ -103,10 +103,10 @@ func killed(err error) bool {
 	return syscall.SIGKILL == ws.Signal()
 }
 
-// GetNextCallbackID gets the next callback ID from the logfile.  It catches
-// and ignores SIGHUP, to make 'pkill plonk' work without killing users of
-// -next-.  Before returning, it unregisteres its SIGHUP-catcher.
-func GetNextCallbackID(logfile string) (string, error) {
+// GetNextSeenID gets the next callback or output ID from the logfile.  It
+// catches and ignores SIGHUP, to make 'pkill plonk' work without killing users
+// of -next-.  Before returning, it unregisteres its SIGHUP-catcher.
+func GetNextSeenID(logfile string) (string, error) {
 	/* Catch and ignore SIGHUP.  No need to read from the channel, as the
 	send will be non-blocking anyway. */
 	ch := make(chan os.Signal, 1)
@@ -163,7 +163,7 @@ func GetNextCallbackID(logfile string) (string, error) {
 			)
 		}
 		/* If we have an ID, we're done. */
-		id, ok := getIDFromCallbackLine(line)
+		id, ok := getIDFromSeenLine(line)
 		if ok {
 			return id, nil
 		}
@@ -180,10 +180,10 @@ func UpdateWithNextIfNeeded(s *string, logfile string) {
 	}
 
 	/* Get the next implantID. */
-	id, err := GetNextCallbackID(logfile)
+	id, err := GetNextSeenID(logfile)
 	if nil != err {
 		log.Fatalf(
-			"[%s] Getting implantID from next callback: %s",
+			"[%s] Getting next seen implantID: %s",
 			MessageTypeError,
 			err,
 		)
@@ -192,17 +192,19 @@ func UpdateWithNextIfNeeded(s *string, logfile string) {
 	*s = id
 }
 
-// getIDFromCallbackLine returns an ID if the line was a sufficient well-formed
-// CALLBACK log line.  If the line was well-formed but the ID was empty,
-// ("", true) is returned.
-func getIDFromCallbackLine(l []byte) (id string, ok bool) {
+// getIDFromSeenLine returns an ID if the line was a sufficient well-formed
+// CALLBACK or OUTPUT log line.  If the line was well-formed but the ID was
+// empty, ("", true) is returned.
+func getIDFromSeenLine(l []byte) (id string, ok bool) {
 	/* Extract the important bits. */
 	ms := LineRE.FindSubmatch(l)
 	if 4 != len(ms) {
 		return "", false
 	}
 	/* Make sure it's a callback. */
-	if MessageTypeCallback != string(ms[2]) {
+	switch string(ms[2]) {
+	case MessageTypeCallback, MessageTypeOutput: /* Good. */
+	default: /* Not the line we're looking for. */
 		return "", false
 	}
 

@@ -5,7 +5,7 @@ package main
  * Tests for tail.go
  * By J. Stuart McMurray
  * Created 20230423
- * Last Modified 20230423
+ * Last Modified 20230523
  */
 
 import (
@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-func TestGetIDFromCallbackLine(t *testing.T) {
+func TestGetIDFromSeenLine(t *testing.T) {
 	for _, c := range []struct {
 		Name string
 		Have string
@@ -26,11 +26,17 @@ func TestGetIDFromCallbackLine(t *testing.T) {
 			`{"ID":"kittens","Task":"ps auxwww"}`,
 		ID: "kittens",
 		Ok: true,
+	}, {
+		Name: "ok/with_output",
+		Have: `2023/05/23 22:42:03 [OUTPUT] 127.0.0.1:9721 NoSNI ` +
+			`GET /o/kittens {"ID":"kittens"}`,
+		ID: "kittens",
+		Ok: true,
 	}} {
 		c := c /* :C */
 		t.Run(c.ID, func(t *testing.T) {
 			t.Parallel()
-			id, ok := getIDFromCallbackLine([]byte(c.Have))
+			id, ok := getIDFromSeenLine([]byte(c.Have))
 			if id == c.ID && ok == c.Ok {
 				return
 			}
