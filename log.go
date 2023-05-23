@@ -5,7 +5,7 @@ package main
  * Handle logging
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230423
+ * Last Modified 20230523
  */
 
 import (
@@ -73,7 +73,7 @@ func LogSignals() {
 	}()
 }
 
-// RLogInteresting legs like RLogJSON, but only if the ID hasn't been seen
+// RLogInteresting logs like RLogJSON, but only if the ID hasn't been seen
 // before, -verbose is given, or v is a struct and fields other than ID have
 // been set in v.
 func RLogInteresting(id string, r *http.Request, messageType string, v any) {
