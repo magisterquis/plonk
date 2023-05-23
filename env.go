@@ -5,13 +5,15 @@ package main
  * Config from environment variables
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230423
+ * Last Modified 20230523
  */
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -39,6 +41,9 @@ var Env struct {
 	TaskPrefix     string `default:"t"`
 	OutputPrefix   string `default:"o"`
 	OutputMax      string `default:"10485760"` /* 10MB */
+	ExfilPrefix    string `default:"p"`
+	ExfilMax       string `default:"104857600"` /* 100MB */
+	ExfilDir       string `default:"exfil"`
 }
 
 // EnvVarName gets the environment variable name for the field in Env at f.  If
@@ -117,3 +122,32 @@ func loadEnv() {
 
 // envNameify returns envPrefix prepended to a capitalized form of s.
 func envNameify(s string) string { return envPrefix + strings.ToUpper(s) }
+
+// MustParseEnvInt parses an int from an environment variable.  The value must
+// be greater than 0.
+func MustParseEnvInt(ev *string) int64 {
+	n, err := parseEnvInt(*ev)
+	if nil != err {
+		log.Fatalf(
+			"[%s] Parsing %s (%q): %s",
+			MessageTypeError,
+			EnvVarName(ev),
+			*ev,
+			err,
+		)
+	}
+	return n
+}
+
+// parseEnvInt parses an int from an environment variable.  The value must be
+// greater than 0.
+func parseEnvInt(s string) (int64, error) {
+	/* Intify. */
+	n, err := strconv.ParseInt(s, 0, 64)
+	if nil != err {
+		return 0, err
+	} else if 0 >= n {
+		return 0, fmt.Errorf("must be greater than 0, not %d", n)
+	}
+	return n, nil
+}

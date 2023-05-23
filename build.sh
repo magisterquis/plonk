@@ -4,7 +4,7 @@
 # Build plonk for a few platforms
 # By J. Stuart McMurray
 # Created 20230228
-# Last Modified 20230423
+# Last Modified 20230523
 
 set -e
 
@@ -19,21 +19,21 @@ if [[ "clean" == "$1" ]]; then
         exit 0
 fi
 
-set -x
-go version
-go test
-go vet
-staticcheck
-go generate
-go build -trimpath
-set +x
+(
+        set -x
+        go version
+        go test
+        go vet
+        staticcheck
+        go generate
+        go build -trimpath -ldflags "-w -s"
+)
 
 build() {
         export GOOS
         N="$(basename $(pwd))-$(go env GOOS)-$(go env GOARCH)"
         set -x
-        go build -trimpath -o "$N"
-        set +x
+        go build -trimpath -ldflags "-w -s" -o "$N"
 }
 
 # Build for newer Macs

@@ -5,7 +5,7 @@ package main
  * Handle logging
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230423
+ * Last Modified 20230523
  */
 
 import (
@@ -28,9 +28,10 @@ type MessageType string
 const (
 	MessageTypeCallback = "CALLBACK"
 	MessageTypeError    = "ERROR"
-	MessageTypeInfo     = "INFO"
+	MessageTypeExfil    = "EXFIL"
 	MessageTypeFile     = "FILE"
 	MessageTypeHTTP     = "HTTP"
+	MessageTypeInfo     = "INFO"
 	MessageTypeOutput   = "OUTPUT"
 	MessageTypeSIGHUP   = "SIGHUP"
 	MessageTypeTLS      = "TLS"

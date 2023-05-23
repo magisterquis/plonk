@@ -6,7 +6,7 @@ package main
  * Simple HTTP-based file/C2 server
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230504
+ * Last Modified 20230523
  */
 
 import (
@@ -19,7 +19,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -96,6 +95,11 @@ func main() {
 			false,
 			"Print the configuration environment variables",
 		)
+		noExfil = flag.Bool(
+			"no-exfil",
+			false,
+			"Do not handle exfil requests",
+		)
 	)
 	flag.Func(
 		"letsencrypt",
@@ -154,6 +158,10 @@ func main() {
   Output from implants is sent in an HTTP request body to /%s/<ImplantID>, or
   just /%s for an IDless implant.
 
+  Larger exfil is sent in an HTTP request body to /%s/<ImplantID>, or just /%s
+  for an IDless implant.  The request bodies will be saved in files in
+  %s/%s/.
+
   HTTP verbs for all requests are ignored.  HTTP requests for paths other than
   the above are served a single static file, by default %s/%s.
 
@@ -194,6 +202,8 @@ Options:
 			Env.TaskPrefix,
 			*workDir, Env.TaskFile,
 			Env.OutputPrefix, Env.OutputPrefix,
+			Env.ExfilPrefix, Env.ExfilPrefix,
+			*workDir, Env.ExfilDir,
 			*workDir, Env.DefaultFile,
 			*workDir, Env.LogFile,
 
@@ -225,25 +235,6 @@ Options:
 			EnvVarName(&Env.HTTPTimeout),
 			Env.HTTPTimeout,
 			err,
-		)
-	}
-	outputMax, err := strconv.ParseInt(Env.OutputMax, 0, 64)
-	if nil != err {
-		log.Fatalf(
-			"[%s] Parsing max output size (%s) %q: %s",
-			MessageTypeError,
-			EnvVarName(&Env.OutputMax),
-			Env.OutputMax,
-			err,
-		)
-	}
-	if 0 >= outputMax {
-		log.Fatalf(
-			"[%s] Max output size (%s) must be greater than "+
-				"zero, not %d",
-			MessageTypeError,
-			EnvVarName(&Env.OutputMax),
-			outputMax,
 		)
 	}
 
@@ -353,6 +344,14 @@ Options:
 		MessageTypeInfo,
 		AbsPath(Env.LECertDir),
 	)
+	if !*noExfil {
+		mkdir(&Env.ExfilDir, "Exfil")
+		Verbosef(
+			"[%s] Exfil directory: %s",
+			MessageTypeInfo,
+			AbsPath(Env.ExfilDir),
+		)
+	}
 
 	/* Set up the files.  Naming is hard. */
 	if err := ReopenTaskFile(); nil != err {
@@ -448,8 +447,14 @@ Options:
 	handle(&Env.TaskPrefix, "task", http.HandlerFunc(HandleTask), true)
 	handle(&Env.OutputPrefix, "output", http.MaxBytesHandler(
 		http.HandlerFunc(HandleOutput),
-		outputMax,
+		MustParseEnvInt(&Env.OutputMax),
 	), true)
+	if !*noExfil {
+		handle(&Env.ExfilPrefix, "exfil", http.MaxBytesHandler(
+			http.HandlerFunc(HandleExfil),
+			MustParseEnvInt(&Env.ExfilMax),
+		), true)
+	}
 	http.Handle("/", LogHandler(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, Env.DefaultFile)
