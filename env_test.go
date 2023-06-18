@@ -5,7 +5,7 @@ package main
  * Tests for env.go
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230225
+ * Last Modified 20230523
  */
 
 import (
@@ -122,4 +122,39 @@ func TestEnvDefaults(t *testing.T) {
 			)
 		}
 	}
+}
+
+func TestParseEnvInt(t *testing.T) {
+	for _, c := range []struct {
+		have    string
+		want    int64
+		wantErr bool
+	}{{
+		have:    "0",
+		wantErr: true,
+	}, {
+		have: "100",
+		want: 100,
+	}, {
+		have:    "-1",
+		wantErr: true,
+	}} {
+		c := c /* :C */
+		t.Run(c.have, func(t *testing.T) {
+			got, err := parseEnvInt(c.have)
+			switch {
+			case c.wantErr && nil != err: /* Good. */
+				return
+			case !c.wantErr && nil != err:
+				t.Errorf("error: %s", err)
+			case c.wantErr && nil == err:
+				t.Errorf("unexpected success: got:%d", got)
+			case !c.wantErr && nil == err:
+				if got != c.want {
+					t.Errorf("got:%d", got)
+				}
+			}
+		})
+	}
+
 }

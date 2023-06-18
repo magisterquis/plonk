@@ -28,9 +28,10 @@ type MessageType string
 const (
 	MessageTypeCallback = "CALLBACK"
 	MessageTypeError    = "ERROR"
-	MessageTypeInfo     = "INFO"
+	MessageTypeExfil    = "EXFIL"
 	MessageTypeFile     = "FILE"
 	MessageTypeHTTP     = "HTTP"
+	MessageTypeInfo     = "INFO"
 	MessageTypeOutput   = "OUTPUT"
 	MessageTypeSIGHUP   = "SIGHUP"
 	MessageTypeTLS      = "TLS"

