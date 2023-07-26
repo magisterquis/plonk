@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/magisterquis/plonk/internal/lib"
+	"github.com/magisterquis/plonk/internal/lib/clgen"
 )
 
 // Default paths, compile-time settable.
@@ -411,6 +412,21 @@ Options:
 		return
 	}
 
+	/* Set up cURL loop generation. */
+	if err := clgen.Init(); nil != err {
+		log.Fatalf(
+			"[%s] Setting up cURL loop generator: %s",
+			lib.MessageTypeError,
+			err,
+		)
+	}
+	lib.Verbosef(
+		"[%s] cURL loop generator template (/%s): %s",
+		lib.MessageTypeInfo,
+		lib.Env.CLGenPrefix,
+		lib.AbsPath(clgen.TemplateFile),
+	)
+
 	/* Set up HTTP handlers.  This is a bit silly. */
 	handle := func(p *string, which string, h http.Handler, bareOk bool) {
 		*p = "/" + strings.Trim(*p, "/")
@@ -445,6 +461,9 @@ Options:
 	handle(&lib.Env.OutputPrefix, "output", http.MaxBytesHandler(
 		http.HandlerFunc(lib.HandleOutput),
 		lib.MustParseEnvInt(&lib.Env.OutputMax),
+	), true)
+	handle(&lib.Env.CLGenPrefix, "curl loop generation", http.HandlerFunc(
+		clgen.Handler,
 	), true)
 	if !*noExfil {
 		handle(&lib.Env.ExfilPrefix, "exfil", http.MaxBytesHandler(

@@ -44,6 +44,7 @@ var Env struct {
 	ExfilPrefix    string `default:"p"`
 	ExfilMax       string `default:"104857600"` /* 100MB */
 	ExfilDir       string `default:"exfil"`
+	CLGenPrefix    string `default:"c"` /* Curl loop generator. */
 }
 
 // EnvVarName gets the environment variable name for the field in Env at f.  If
