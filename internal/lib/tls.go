@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * tls.go
  * TLS config and cert-handling
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230228
+ * Last Modified 20230726
  */
 
 import (

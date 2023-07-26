@@ -6,7 +6,7 @@ package main
  * Simple HTTP-based file/C2 server
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230523
+ * Last Modified 20230726
  */
 
 import (
@@ -20,8 +20,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"time"
+
+	"github.com/magisterquis/plonk/internal/lib"
 )
 
 // Default paths, compile-time settable.
@@ -29,22 +30,10 @@ var (
 	defaultWorkDir = "plonk.d"
 )
 
-var (
-	// Verbosef is a verbose logger.
-	Verbosef = log.Printf
-	// VerbOn will be set if the user passed -verbose
-	VerbOn bool
-	// workingDir is our working directory.
-	workingDir string
-	// flog is a logger which only writes to the logfile.  It should
-	// not be used until logging is initialized.
-	flog atomic.Pointer[log.Logger]
-)
-
 func init() {
 	/* Try to prevent nil pointer dereferences.  In theory, another ini
 	could still be a problem. */
-	flog.Store(log.Default())
+	lib.Flog.Store(log.Default())
 }
 
 func main() {
@@ -121,9 +110,9 @@ func main() {
 		},
 	)
 	flag.BoolVar(
-		&VerbOn,
+		&lib.VerbOn,
 		"verbose",
-		VerbOn,
+		lib.VerbOn,
 		"Log ALL the things",
 	)
 	os.Args[0] = "plonk"
@@ -196,25 +185,25 @@ Options:
 			/* Server help */
 			os.Args[0],
 			*workDir,
-			*workDir, Env.LocalCertDir,
-			*workDir, Env.StaticFilesDir,
-			Env.FilesPrefix,
-			Env.TaskPrefix,
-			*workDir, Env.TaskFile,
-			Env.OutputPrefix, Env.OutputPrefix,
-			Env.ExfilPrefix, Env.ExfilPrefix,
-			*workDir, Env.ExfilDir,
-			*workDir, Env.DefaultFile,
-			*workDir, Env.LogFile,
+			*workDir, lib.Env.LocalCertDir,
+			*workDir, lib.Env.StaticFilesDir,
+			lib.Env.FilesPrefix,
+			lib.Env.TaskPrefix,
+			*workDir, lib.Env.TaskFile,
+			lib.Env.OutputPrefix, lib.Env.OutputPrefix,
+			lib.Env.ExfilPrefix, lib.Env.ExfilPrefix,
+			*workDir, lib.Env.ExfilDir,
+			*workDir, lib.Env.DefaultFile,
+			*workDir, lib.Env.LogFile,
 
 			/* -task help */
-			os.Args[0], NextImplantID,
-			*workDir, Env.TaskFile, NextImplantID,
+			os.Args[0], lib.NextImplantID,
+			*workDir, lib.Env.TaskFile, lib.NextImplantID,
 
 			/* -implant help */
-			os.Args[0], NextImplantID,
-			*workDir, Env.TaskFile,
-			*workDir, Env.LogFile, NextImplantID,
+			os.Args[0], lib.NextImplantID,
+			*workDir, lib.Env.TaskFile,
+			*workDir, lib.Env.LogFile, lib.NextImplantID,
 		)
 		flag.PrintDefaults()
 	}
@@ -222,18 +211,18 @@ Options:
 
 	/* If we're just printing the environment, life's easy. */
 	if *printEnv {
-		PrintEnv()
+		lib.PrintEnv()
 		return
 	}
 
 	/* Parse environment things. */
-	httpTimeout, err := time.ParseDuration(Env.HTTPTimeout)
+	httpTimeout, err := time.ParseDuration(lib.Env.HTTPTimeout)
 	if nil != err {
 		log.Fatalf(
 			"[%s] Parsing HTTP timeout (%s) %q: %s",
-			MessageTypeError,
-			EnvVarName(&Env.HTTPTimeout),
-			Env.HTTPTimeout,
+			lib.MessageTypeError,
+			lib.EnvVarName(&lib.Env.HTTPTimeout),
+			lib.Env.HTTPTimeout,
 			err,
 		)
 	}
@@ -242,7 +231,7 @@ Options:
 	if "" == *httpAddr && "" == *httpsAddr {
 		log.Fatalf(
 			"[%s] Need a listen addres (-http-addr/-https-addr)",
-			MessageTypeError,
+			lib.MessageTypeError,
 		)
 	}
 
@@ -250,7 +239,7 @@ Options:
 	if err := os.MkdirAll(*workDir, 0770); nil != err {
 		log.Fatalf(
 			"[%s] Making working directory (-work-dir) %q: %s",
-			MessageTypeError,
+			lib.MessageTypeError,
 			*workDir,
 			err,
 		)
@@ -258,46 +247,50 @@ Options:
 	if err := os.Chdir(*workDir); nil != err {
 		log.Fatalf(
 			"[%s] Changing to working directory %q: %s",
-			MessageTypeError,
+			lib.MessageTypeError,
 			*workDir,
 			err,
 		)
 	}
-	workingDir, err = os.Getwd()
+	lib.WorkingDir, err = os.Getwd()
 	if nil != err {
 		log.Fatalf(
 			"[%s] Getting working directory: %s",
-			MessageTypeError,
+			lib.MessageTypeError,
 			err,
 		)
 	}
 
 	/* Work out logging. */
 	logFile, err := os.OpenFile(
-		Env.LogFile,
+		lib.Env.LogFile,
 		os.O_RDWR|os.O_CREATE|os.O_APPEND, /* RDWR because -interact. */
 		0660,
 	)
 	if nil != err {
 		log.Fatalf(
 			"[%s] Opening logfile (%s) %q: %s",
-			MessageTypeError,
-			EnvVarName(&Env.LogFile),
-			Env.LogFile,
+			lib.MessageTypeError,
+			lib.EnvVarName(&lib.Env.LogFile),
+			lib.Env.LogFile,
 			err,
 		)
 	}
 	defer logFile.Close()
-	flog.Store(log.New(logFile, "", log.LstdFlags))
+	lib.Flog.Store(log.New(logFile, "", log.LstdFlags))
 	log.SetOutput(io.MultiWriter(logFile, os.Stdout))
-	if !VerbOn {
-		Verbosef = func(string, ...any) {}
+	if !lib.VerbOn {
+		lib.Verbosef = func(string, ...any) {}
 	}
-	Verbosef("[%s] Working directory: %s", MessageTypeInfo, workingDir)
-	Verbosef(
+	lib.Verbosef(
+		"[%s] Working directory: %s",
+		lib.MessageTypeInfo,
+		lib.WorkingDir,
+	)
+	lib.Verbosef(
 		"[%s] Logfile: %s",
-		MessageTypeInfo,
-		AbsPath(logFile.Name()),
+		lib.MessageTypeInfo,
+		lib.AbsPath(logFile.Name()),
 	)
 
 	/* Make sure domain whitelist entries are valid globs. */
@@ -308,7 +301,7 @@ Options:
 		}
 		log.Fatalf(
 			"[%s] Bad domain whitelist glob: %s",
-			MessageTypeError,
+			lib.MessageTypeError,
 			err,
 		)
 	}
@@ -318,66 +311,66 @@ Options:
 		if err := os.MkdirAll(*p, 0770); nil != err {
 			log.Fatalf(
 				"[%s] making %s files directory (%s) %q: %s",
-				MessageTypeError,
+				lib.MessageTypeError,
 				which,
-				EnvVarName(p),
+				lib.EnvVarName(p),
 				*p,
 				err,
 			)
 		}
 	}
-	mkdir(&Env.StaticFilesDir, "static files")
-	Verbosef(
+	mkdir(&lib.Env.StaticFilesDir, "static files")
+	lib.Verbosef(
 		"[%s] Static files directory: %s",
-		MessageTypeInfo,
-		AbsPath(Env.StaticFilesDir),
+		lib.MessageTypeInfo,
+		lib.AbsPath(lib.Env.StaticFilesDir),
 	)
-	mkdir(&Env.LocalCertDir, "TLS certificates")
-	Verbosef(
+	mkdir(&lib.Env.LocalCertDir, "TLS certificates")
+	lib.Verbosef(
 		"[%s] Non-Let's Encrypt TLS certificates directory: %s",
-		MessageTypeInfo,
-		AbsPath(Env.LocalCertDir),
+		lib.MessageTypeInfo,
+		lib.AbsPath(lib.Env.LocalCertDir),
 	)
-	mkdir(&Env.LECertDir, "Let's Encrypt cache")
-	Verbosef(
+	mkdir(&lib.Env.LECertDir, "Let's Encrypt cache")
+	lib.Verbosef(
 		"[%s] Let's Encrypt certificates directory: %s",
-		MessageTypeInfo,
-		AbsPath(Env.LECertDir),
+		lib.MessageTypeInfo,
+		lib.AbsPath(lib.Env.LECertDir),
 	)
 	if !*noExfil {
-		mkdir(&Env.ExfilDir, "Exfil")
-		Verbosef(
+		mkdir(&lib.Env.ExfilDir, "Exfil")
+		lib.Verbosef(
 			"[%s] Exfil directory: %s",
-			MessageTypeInfo,
-			AbsPath(Env.ExfilDir),
+			lib.MessageTypeInfo,
+			lib.AbsPath(lib.Env.ExfilDir),
 		)
 	}
 
 	/* Set up the files.  Naming is hard. */
-	if err := ReopenTaskFile(); nil != err {
+	if err := lib.ReopenTaskFile(); nil != err {
 		log.Fatalf(
 			"[%s] Opening taskfile (%s) %q: %s",
-			MessageTypeError,
-			EnvVarName(&Env.TaskFile),
-			Env.TaskFile,
+			lib.MessageTypeError,
+			lib.EnvVarName(&lib.Env.TaskFile),
+			lib.Env.TaskFile,
 			err,
 		)
 	}
-	Verbosef(
+	lib.Verbosef(
 		"[%s] Taskfile: %s",
-		MessageTypeInfo,
-		AbsPath(Env.TaskFile),
+		lib.MessageTypeInfo,
+		lib.AbsPath(lib.Env.TaskFile),
 	)
 	if f, err := os.OpenFile(
-		Env.DefaultFile,
+		lib.Env.DefaultFile,
 		os.O_RDONLY|os.O_CREATE,
 		0660,
 	); nil != err {
 		log.Fatalf(
 			"[%s] opening default file (%s) %q: %s",
-			MessageTypeError,
-			EnvVarName(&Env.DefaultFile),
-			Env.DefaultFile,
+			lib.MessageTypeError,
+			lib.EnvVarName(&lib.Env.DefaultFile),
+			lib.Env.DefaultFile,
 			err,
 		)
 	} else {
@@ -386,18 +379,18 @@ Options:
 
 	/* If we're going interactive or just queuing a task, life's easy. */
 	if "" != *interact { /* Interact with an implant. */
-		UpdateWithNextIfNeeded(interact, logFile.Name())
-		if err := Interact(*interact, logFile.Name()); nil != err {
+		lib.UpdateWithNextIfNeeded(interact, logFile.Name())
+		if err := lib.Interact(*interact, logFile.Name()); nil != err {
 			log.Fatalf(
 				"[%s] Interacting with %q: %s",
-				MessageTypeError,
+				lib.MessageTypeError,
 				*interact,
 				err,
 			)
 		}
 		return
 	} else if "" != *queueTask { /* Queue a task */
-		UpdateWithNextIfNeeded(queueTask, logFile.Name())
+		lib.UpdateWithNextIfNeeded(queueTask, logFile.Name())
 		/* Make the task a single string. */
 		t := strings.Join(flag.Args(), " ")
 		/* ID - really means "". */
@@ -406,10 +399,10 @@ Options:
 			id = ""
 		}
 		/* Do the deed. */
-		if err := AddTask(id, t, false); nil != err {
+		if err := lib.AddTask(id, t, false); nil != err {
 			log.Fatalf(
 				"[%s] Queuing task %q for %q: %s",
-				MessageTypeError,
+				lib.MessageTypeError,
 				t,
 				id,
 				err,
@@ -425,9 +418,9 @@ Options:
 			log.Fatalf(
 				"[%s] HTTP path prefix for %s (%s) may not "+
 					"be empty or /",
-				MessageTypeError,
+				lib.MessageTypeError,
 				which,
-				EnvVarName(p),
+				lib.EnvVarName(p),
 			)
 
 		}
@@ -439,37 +432,41 @@ Options:
 		}
 	}
 	handle(
-		&Env.FilesPrefix,
+		&lib.Env.FilesPrefix,
 		"static files",
-		LogHandler(http.FileServer(http.Dir(Env.StaticFilesDir))),
+		lib.LogHandler(http.FileServer(
+			http.Dir(lib.Env.StaticFilesDir),
+		)),
 		false,
 	)
-	handle(&Env.TaskPrefix, "task", http.HandlerFunc(HandleTask), true)
-	handle(&Env.OutputPrefix, "output", http.MaxBytesHandler(
-		http.HandlerFunc(HandleOutput),
-		MustParseEnvInt(&Env.OutputMax),
+	handle(&lib.Env.TaskPrefix, "task", http.HandlerFunc(
+		lib.HandleTask,
+	), true)
+	handle(&lib.Env.OutputPrefix, "output", http.MaxBytesHandler(
+		http.HandlerFunc(lib.HandleOutput),
+		lib.MustParseEnvInt(&lib.Env.OutputMax),
 	), true)
 	if !*noExfil {
-		handle(&Env.ExfilPrefix, "exfil", http.MaxBytesHandler(
-			http.HandlerFunc(HandleExfil),
-			MustParseEnvInt(&Env.ExfilMax),
+		handle(&lib.Env.ExfilPrefix, "exfil", http.MaxBytesHandler(
+			http.HandlerFunc(lib.HandleExfil),
+			lib.MustParseEnvInt(&lib.Env.ExfilMax),
 		), true)
 	}
-	http.Handle("/", LogHandler(http.HandlerFunc(
+	http.Handle("/", lib.LogHandler(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, Env.DefaultFile)
+			http.ServeFile(w, r, lib.Env.DefaultFile)
 		},
 	)))
-	Verbosef(
+	lib.Verbosef(
 		"[%s] Default file: %s",
-		MessageTypeInfo,
-		AbsPath(Env.DefaultFile),
+		lib.MessageTypeInfo,
+		lib.AbsPath(lib.Env.DefaultFile),
 	)
 
 	/* Watch for Signal. */
-	go LogSignals()
-	go TaskQSignals()
-	go TLSSignals()
+	go lib.LogSignals()
+	go lib.TaskQSignals()
+	go lib.TLSSignals()
 
 	/* Actually serve requests. */
 	type serr struct {
@@ -490,17 +487,17 @@ Options:
 		go func() {
 			ech <- serr{
 				which: "HTTP",
-				err:   HTTPServer.Serve(httpL),
+				err:   lib.HTTPServer.Serve(httpL),
 			}
 		}()
-		Verbosef(
+		lib.Verbosef(
 			"[%s] HTTP address: %s",
-			MessageTypeInfo,
+			lib.MessageTypeInfo,
 			httpL.Addr(),
 		)
 	}
 	if "" != *httpsAddr {
-		httpsL, err := tls.Listen("tcp", *httpsAddr, MakeTLSConfig(
+		httpsL, err := tls.Listen("tcp", *httpsAddr, lib.MakeTLSConfig(
 			leDomains,
 			wlDomains,
 			*leEmail,
@@ -517,12 +514,12 @@ Options:
 		go func() {
 			ech <- serr{
 				which: "HTTPS",
-				err:   HTTPServer.Serve(httpsL),
+				err:   lib.HTTPServer.Serve(httpsL),
 			}
 		}()
-		Verbosef(
+		lib.Verbosef(
 			"[%s] HTTPS address: %s",
-			MessageTypeInfo,
+			lib.MessageTypeInfo,
 			httpsL.Addr(),
 		)
 	}
@@ -532,16 +529,8 @@ Options:
 	ferr := <-ech
 	log.Fatalf(
 		"[%s] Serving %s: %s",
-		MessageTypeError,
+		lib.MessageTypeError,
 		ferr.which,
 		ferr.err,
 	)
-}
-
-// AbsPath is like filepath.Abs, but uses workingDir as the working directory.
-func AbsPath(path string) string {
-	if filepath.IsAbs(path) {
-		return filepath.Clean(path)
-	}
-	return filepath.Join(workingDir, path)
 }

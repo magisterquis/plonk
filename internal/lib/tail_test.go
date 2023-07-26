@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * tail_test.go
  * Tests for tail.go
  * By J. Stuart McMurray
  * Created 20230423
- * Last Modified 20230523
+ * Last Modified 20230726
  */
 
 import (

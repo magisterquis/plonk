@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * interact.go
  * Interact with an implant
  * By J. Stuart McMurray
  * Created 20230224
- * Last Modified 20230423
+ * Last Modified 20230726
  */
 
 import (

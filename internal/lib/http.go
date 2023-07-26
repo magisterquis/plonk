@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * http.go
  * HTTP utility functions
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230225
+ * Last Modified 20230726
  */
 
 import (

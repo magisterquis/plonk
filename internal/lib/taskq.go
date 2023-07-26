@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * taskq.go
  * Read and write the task queue.
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230423
+ * Last Modified 20230726
  */
 
 import (

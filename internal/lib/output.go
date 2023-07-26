@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * output.go
  * Get task output
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230225
+ * Last Modified 20230726
  */
 
 import (

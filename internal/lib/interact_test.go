@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * interact_test.go
  * Tests for interact.go
  * By J. Stuart McMurray
  * Created 20230224
- * Last Modified 20230423
+ * Last Modified 20230726
  */
 
 import (

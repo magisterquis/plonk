@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * exfil.go
  * Save exfil request bodies to files
  * By J. Stuart McMurray
  * Created 20230523
- * Last Modified 20230523
+ * Last Modified 20230726
  */
 
 import (

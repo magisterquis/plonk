@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * env_test.go
  * Tests for env.go
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230523
+ * Last Modified 20230726
  */
 
 import (

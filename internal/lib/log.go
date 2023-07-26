@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * log.go
  * Handle logging
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230523
+ * Last Modified 20230726
  */
 
 import (
@@ -17,6 +17,7 @@ import (
 	"os/signal"
 	"reflect"
 	"sync"
+	"sync/atomic"
 
 	"golang.org/x/exp/maps"
 	"golang.org/x/sys/unix"
@@ -46,6 +47,18 @@ var (
 	/* seenIDs keeps track of which IDs we've seen, for better logging. */
 	seenIDs  = make(map[string]struct{})
 	seenIDsL sync.Mutex
+)
+
+var (
+	/* Verbosef is a verbose logger. */
+	Verbosef = log.Printf
+
+	/* VerbOn will be set if the user passed -verbose. */
+	VerbOn bool
+
+	/* Flog is a logger which only writes to the logfile.  It should
+	not be used until logging is initialized. */
+	Flog atomic.Pointer[log.Logger]
 )
 
 // LogSignals deletes all seenIDs on SIGHUP.

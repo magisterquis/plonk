@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * task.go
  * Send implants tasking
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230225
+ * Last Modified 20230726
  */
 
 import (
@@ -82,7 +82,7 @@ func getTask(id string) (string, error) {
 }
 
 // AddTask adds the task to id's queue and returns the queue length.  If
-// onlyFile is true, the log will only go to the logfile (via flog).
+// onlyFile is true, the log will only go to the logfile (via Flog).
 func AddTask(id, task string, onlyFile bool) error {
 	/* Get the current task queues. */
 	tq, err := ReadQ()
@@ -116,7 +116,7 @@ func AddTask(id, task string, onlyFile bool) error {
 
 	/* Log it to the right place. */
 	if onlyFile {
-		flog.Load().Printf("%s", msg)
+		Flog.Load().Printf("%s", msg)
 	} else {
 		log.Printf("%s", msg)
 	}

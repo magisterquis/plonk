@@ -1,11 +1,11 @@
-package main
+package lib
 
 /*
  * tail.go
  * Tail the logfile
  * By J. Stuart McMurray
  * Created 20230423
- * Last Modified 20230523
+ * Last Modified 20230726
  */
 
 import (
