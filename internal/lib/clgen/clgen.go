@@ -6,7 +6,7 @@ package clgen
  * Generate a shell-powered cURL loop
  * By J. Stuart McMurray
  * Created 20230726
- * Last Modified 20230726
+ * Last Modified 20230807
  */
 
 import (
@@ -36,6 +36,10 @@ var (
 	It is used in the same way as C2URLParam. */
 	IntervalParam = "cbint"
 
+	/* IDParam is the parameter used to set the ImplantID to a static
+	value. It is used in the same way as C2URLParam. */
+	IDParam = "id"
+
 	/* CallbackInterval is the default callback interval for the script,
 	as parsed by time.ParseDuration.  This will be rounded domwn to the
 	nearest whole second. */
@@ -53,9 +57,10 @@ var (
 
 // templateParams holds the parameters we pass to the template.
 type templateParams struct {
-	RandN    string /* Random base36 number, for ImplantID. */
+	RandN    string /* Random base36 number, for ImplantID */
 	URL      string /* C2 URL for /{t,o}/ImplantID */
-	Interval int    /* Callback interval, in seconds. */
+	Interval int    /* Callback interval, in seconds */
+	ID       string /* Static ImplantID */
 }
 
 // Init gets or makes the template, and starts a watcher to re-read it on

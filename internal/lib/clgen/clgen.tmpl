@@ -3,13 +3,18 @@
      * Template for a cURL in a loop self-backgrounding script.
      * By J. Stuart McMurray
      * Created 20230726
-     * Last Modified 20230726
+     * Last Modified 20230807
      */ -}}
 #!/bin/sh
 
 /bin/sh >/dev/null 2>&1 <<'_eof' &
 
-ID="{{ .RandN }}-$(hostname || uname -n || curl -s file:///proc/sys/kernel/hostname || curl -s file:///etc/hostname || curl -s file:///etc/myname || echo unknown)-$$"
+ID=
+{{- if .ID -}}
+	{{ .ID }}
+{{- else -}}
+	"{{ .RandN }}-$(hostname || uname -n || curl -s file:///proc/sys/kernel/hostname || curl -s file:///etc/hostname || curl -s file:///etc/myname || echo unknown)-$$"
+{{- end }}
 
 while :; do
         (

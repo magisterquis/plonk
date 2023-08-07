@@ -5,7 +5,7 @@ package clgen
  * Serve up the template
  * By J. Stuart McMurray
  * Created 20230726
- * Last Modified 20230726
+ * Last Modified 20230807
  */
 
 import (
@@ -149,6 +149,18 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 
 	/* We'll add our own slashes in the template. */
 	params.URL = strings.TrimRight(params.URL, "/")
+
+	/* Get the ImplantID, if it was given.  This one's fairly easy. */
+	if params.ID, err = getParam(req, IDParam); nil != err {
+		lib.RLogf(
+			req,
+			string(MessageTypeCLGen),
+			"Error extracting ImplantID (%s): %s",
+			IDParam,
+			err,
+		)
+		return
+	}
 
 	/* Actually execute the template. */
 	var buf bytes.Buffer
