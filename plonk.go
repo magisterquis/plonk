@@ -6,7 +6,7 @@ package main
  * Simple HTTP-based file/C2 server
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230726
+ * Last Modified 20230807
  */
 
 import (
@@ -139,6 +139,9 @@ func main() {
   Files and directories under %s/%s/ will served when Plonk gets a
   request for a path under /%s/.
 
+  A quick-n-dirty implant script can be retrieved from /%s.  By default, it
+  will call back to the protocol, domain, and port from which it was requested.
+
   C2 tasking is retrieved by a request to /%s/<ImplantID>.  The /<ImplantID>
   may be empty; Plonk treats this as an IDless implant.  Tasking is stored in a
   single JSON file (currently %s/%s), which may be updated by
@@ -189,6 +192,7 @@ Options:
 			*workDir, lib.Env.LocalCertDir,
 			*workDir, lib.Env.StaticFilesDir,
 			lib.Env.FilesPrefix,
+			lib.Env.CLGenPrefix,
 			lib.Env.TaskPrefix,
 			*workDir, lib.Env.TaskFile,
 			lib.Env.OutputPrefix, lib.Env.OutputPrefix,

