@@ -6,19 +6,13 @@ package clgen
  * Generate a shell-powered cURL loop
  * By J. Stuart McMurray
  * Created 20230726
- * Last Modified 20230807
+ * Last Modified 20230911
  */
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"os/signal"
-	"sync"
-	"text/template"
 
 	"github.com/magisterquis/plonk/internal/lib"
-	"golang.org/x/sys/unix"
 )
 
 // Compile-time-settable variables.
@@ -49,12 +43,6 @@ var (
 // MessageTypeCLGen is how we tag failures in cURL loop things.
 const MessageTypeCLGen lib.MessageType = "CURLLOOP"
 
-var (
-	// cTemplate holds our parsed template.
-	cTemplate  *template.Template
-	cTemplateL sync.RWMutex
-)
-
 // templateParams holds the parameters we pass to the template.
 type templateParams struct {
 	RandN    string /* Random base36 number, for ImplantID */
@@ -63,41 +51,17 @@ type templateParams struct {
 	ID       string /* Static ImplantID */
 }
 
-// Init gets or makes the template, and starts a watcher to re-read it on
-// SIGHUP.  It should not be called until we can open files, i.e. after
-// our working directory is sorted.
+// Init works out where the template file should be and loads the template from
+// the template file if it exists or from the embedded template if not to make
+// sure it parses.
 func Init() error {
-	/* Make sure the callback interval is sane. */
-
 	/* Work out where we'll store the template. */
 	TemplateFile = lib.AbsPath(TemplateFile)
 
 	/* Load the initial template. */
-	if err := loadTemplate(); nil != err {
-		return fmt.Errorf("getting initial template: %w", err)
+	if _, err := loadTemplate(); nil != err {
+		return fmt.Errorf("parsing initial template: %w", err)
 	}
-
-	/* Start a template re-reader on SIGHUP. */
-	ch := make(chan os.Signal, 2)
-	signal.Notify(ch, unix.SIGHUP)
-	go func() {
-		for range ch {
-			if err := loadTemplate(); nil != err {
-				log.Printf(
-					"[%s] Error loading cURL loop "+
-						"template from %s: %s",
-					MessageTypeCLGen,
-					TemplateFile,
-					err,
-				)
-			}
-			log.Printf(
-				"[%s] Re-read template from %s",
-				lib.MessageTypeSIGHUP,
-				TemplateFile,
-			)
-		}
-	}()
 
 	return nil
 }

@@ -5,7 +5,7 @@ package clgen
  * Serve up the template
  * By J. Stuart McMurray
  * Created 20230726
- * Last Modified 20230807
+ * Last Modified 20230911
  */
 
 import (
@@ -164,9 +164,17 @@ func Handler(w http.ResponseWriter, req *http.Request) {
 
 	/* Actually execute the template. */
 	var buf bytes.Buffer
-	cTemplateL.RLock()
-	defer cTemplateL.RUnlock()
-	if err := cTemplate.Execute(&buf, params); nil != err {
+	tmpl, err := loadTemplate()
+	if nil != err {
+		lib.RLogf(
+			req,
+			string(MessageTypeCLGen),
+			"Error loading template: %s",
+			err,
+		)
+		return
+	}
+	if err := tmpl.Execute(&buf, params); nil != err {
 		lib.RLogf(
 			req,
 			string(MessageTypeCLGen),

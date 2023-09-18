@@ -6,7 +6,7 @@ package main
  * Simple HTTP-based file/C2 server
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230807
+ * Last Modified 20230911
  */
 
 import (
@@ -89,6 +89,14 @@ func main() {
 			"no-exfil",
 			false,
 			"Do not handle exfil requests",
+		)
+		printCLGenTemplate = flag.Bool(
+			"implant-template",
+			false,
+			fmt.Sprintf(
+				"Print the %s template and exit",
+				lib.Env.CLGenPrefix,
+			),
 		)
 	)
 	flag.Func(
@@ -423,6 +431,16 @@ Options:
 			lib.MessageTypeError,
 			err,
 		)
+	}
+	if *printCLGenTemplate {
+		tb, _, err := clgen.Template()
+		if nil != err {
+			log.Fatalf("Error getting template: %s", err)
+		}
+		if _, err := os.Stdout.Write(tb); nil != err {
+			log.Fatalf("Error writing template: %s", err)
+		}
+		return
 	}
 	lib.Verbosef(
 		"[%s] cURL loop generator template (/%s): %s",
