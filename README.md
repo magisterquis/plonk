@@ -22,7 +22,7 @@ Singleplayer Quickstart
 ```sh
 # Install Plonk itself.  This can be done on another host, so long as plonk
 # is in PATH on the server or the rest of this section is adjusted accordingly.
-go install github.com/magisterquis/plonk@latest
+go install github.com/magisterquis/plonk@v0.0.1-beta.1
 
 # Start it going
 nohup plonk -server -https 0.0.0.0:4433 >/dev/null 2>&1 &
