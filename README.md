@@ -1,3 +1,14 @@
+REWRITE HAPPENING
+=================
+Plonk is undergoing a re-write.  Expect this to change quite a bit in the near
+future.  To test the new version, install with
+```sh
+go install github.com/magisterquis/plonk@v0.0.1-beta.1
+```
+and read the `-h` output.  It's significantly different.
+
+---
+
 Plonk HTTP C2 and Static File Server
 ====================================
 Plonk is a little HTTP(s) server program you can just plonk down and use for
