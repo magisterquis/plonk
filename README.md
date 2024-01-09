@@ -1,6 +1,6 @@
 REWRITE HAPPENING
 =================
-Plonk is undergoing a re-write.  Expect this to change quite a bit in the near
+Plonk is undergoing a rewrite.  Expect this to change quite a bit in the near
 future.  To test the new version, install with
 ```sh
 go install github.com/magisterquis/plonk@v0.0.1-beta.1
