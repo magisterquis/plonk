@@ -2,7 +2,7 @@
 # Build Plonk
 # By J. Stuart McMurray
 # Created 20230429
-# Last Modified 20231208
+# Last Modified 20231210
 
 BINNAME!=basename $$(pwd)
 BUILDFLAGS=-trimpath -ldflags "-w -s"
@@ -17,12 +17,12 @@ test:
 	staticcheck ./...
 	go run ${BUILDFLAGS} . -h 2>&1 |\
 	awk '\
-		/^Options:|MQD DEBUG PACKAGE LOADED$$/ {exit}\
+		/^Options:$$|MQD DEBUG PACKAGE LOADED$$/ {exit}\
 		/.{80,}/ {print "Long usage line: " $$0; exit 1}\
 	'
 
-testmany:
-	go test -timeout 10s -count ${TESTMANYCOUNT} -failfast ${BUILDFLAGS} ./...
+longtest:
+	go test -timeout 10s -count ${TESTMANYCOUNT} -short -failfast ${BUILDFLAGS} ./...
 	
 build:
 	go build ${BUILDFLAGS} -o ${BINNAME}

