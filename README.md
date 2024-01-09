@@ -1,7 +1,9 @@
 REWRITE HAPPENING
 =================
 Plonk is undergoing a rewrite.  Expect this to change quite a bit in the near
-future.  To test the new version, install with
+future.  To test the
+[new version](https://github.com/magisterquis/plonk/tree/v0.0.1-beta.1),
+install with
 ```sh
 go install github.com/magisterquis/plonk@v0.0.1-beta.1
 ```
