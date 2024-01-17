@@ -10,7 +10,7 @@ Files Herein
 
 File                                 | Description
 -------------------------------------|------------
-[`changelog.md](./changelog.md)      | A log logging changes
+[`changelog.md`](./changelog.md)     | A log logging changes
 [`config.md`](./config.md)           | "Advanced" configuration
 [`multiplayer.md`](./multiplayer.md) | Multiplayer setup
 [`protocol.md`](./protocol.md)       | HTTP endpoints
