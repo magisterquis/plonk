@@ -6,7 +6,7 @@ package def
  * Defined constants
  * By J. Stuart McMurray
  * Created 20231110
- * Last Modified 20231219
+ * Last Modified 20240117
  */
 
 import (
@@ -47,7 +47,7 @@ const (
 	DirPerms          = 0770                /* Default directory permissions. */
 	FilePerms         = 0660                /* Default file permissions. */
 	HTTPIOTimeout     = 30 * time.Second    /* HTTP read/write timeout. */
-	LogsPrompt        = "(plonk)> "         /* opshell prompt for log-watching. */
+	LogsPrompt        = "(Plonk)> "         /* opshell prompt for log-watching. */
 	MaxExfilOpenTries = 100                 /* Maximum number of exfil filenames to try. */
 	MaxOutput         = 1 * 1024 * 1024     /* Output stops at 1MB. */
 	NSeen             = 10                  /* Max number of seen IDs. */
