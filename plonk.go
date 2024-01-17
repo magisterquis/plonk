@@ -6,7 +6,7 @@ package main
  * Really simple HTTP-based C2 server
  * By J. Stuart McMurray
  * Created 20231104
- * Last Modified 20231229
+ * Last Modified 20240117
  */
 
 import (
@@ -159,6 +159,11 @@ Options:
 	}
 	flag.Parse()
 
+	/* Excess command-line parameters mean a typo. */
+	if 0 != flag.NArg() {
+		log.Fatalf("Leftover command-line parameters found.  Typo?")
+	}
+
 	/* If we're just printing the template, life's easy. */
 	if *printImplantTemplate {
 		if _, err := io.WriteString(
@@ -172,6 +177,25 @@ Options:
 
 	/* If we're a client, be a client. */
 	if !*beServer {
+		/* But first make sure that we don't have any serverish
+		flags. */
+		var msg string
+		switch {
+		case DefaultHTTPAddr != *httpAddr:
+			msg = "Can't listen for HTTP requests as a -client"
+		case DefaultHTTPSAddr != *httpsAddr:
+			msg = "Can't listen for HTTPS requests as a -client"
+		case *leStaging ||
+			"" != *leEmail ||
+			0 != len(ssDomains) ||
+			0 != len(leDomains):
+			msg = "Can't serve HTTPS as a client"
+		}
+		if "" != msg {
+			log.Fatalf("%s.  Need -server?", msg)
+		}
+
+		/* We look clientish, connect and go. */
 		c := &client.Client{
 			Dir:   *dir,
 			Debug: *debug,
@@ -184,6 +208,11 @@ Options:
 			os.Exit(1)
 		}
 		return
+	}
+
+	/* If a server has a name, someone oopsed. */
+	if defaultName() != *opName {
+		log.Fatalf("Please don't give a -server a -name")
 	}
 
 	/* If we're serving HTTPS, make sure we can serve something. */
