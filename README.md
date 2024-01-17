@@ -18,6 +18,8 @@ up and use but also powerful enough for real, if simple, ops.
    or a self-signed certificate.  Or both.
 5. More than zero [documentation](./doc)
 
+Please see the [changelog](./doc/changelog.md) for a log of changes.
+
 Singleplayer Quickstart
 -----------------------
 Make sure you have [Go](https://go.dev/doc/install) installed.
