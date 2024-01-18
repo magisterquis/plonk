@@ -24,8 +24,7 @@ Implant IDs
 -----------
 Each Implant is assumed to have its own, unique ID.  This isn't enforced, but
 things get kinda weird if it's not the case.  The ID itself doesn't matter much
-as long as it works in a URL.  In principle, an empty ID may be used, but this
-tends to be more trouble than it's worth.
+as long as it works in a URL.
 
 Tasking (`/t`)
 ------------

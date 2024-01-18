@@ -5,7 +5,7 @@ package client
  * Command handlers
  * By J. Stuart McMurray
  * Created 20231206
- * Last Modified 20231219
+ * Last Modified 20240118
  */
 
 import (
@@ -50,7 +50,7 @@ func nameHandler(s shell, name, args []string) error {
 func enqueueHandler(s shell, name, args []string) error {
 	/* Make sure we have an implant. */
 	id := s.V().id.Load()
-	if nil == id {
+	if nil == id || "" == *id {
 		s.ErrorLogf("Please set an implant ID first with ,seti")
 		return nil
 	}
@@ -117,15 +117,15 @@ func setiHandler(s shell, name, args []string) error {
 	if 0 != len(args) {
 		id = args[0]
 	}
-	s.V().id.Store(&id)
-	n := id
-	if "" == n {
-		n = def.NamelessName
+	if "" == id {
+		s.ErrorLogf("Need an ID, please")
+		return nil
 	}
+	s.V().id.Store(&id)
 
 	/* Tell the user. */
-	s.SetPrompt(n + opshell.DefaultPrompt)
-	s.Logf("Interacting with %s", n)
+	s.SetPrompt(id + opshell.DefaultPrompt)
+	s.Logf("Interacting with %s", id)
 	s.Logf("Use %s to return to watching Plonk's logs", logsCmd)
 	return nil
 }
@@ -172,11 +172,10 @@ func commandNotFoundHandler(s shell, line string, err error) error {
 	}
 
 	/* If it started with a comma, probably a typo. */
-	idn := iName(*idp)
 	s.Logf(
 		"Looks like a typo.  "+
 			"If it was meant for %s, please use ,task.",
-		idn,
+		*idp,
 	)
 	return nil
 }

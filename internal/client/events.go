@@ -5,7 +5,7 @@ package client
  * Respond to events sent by the server.
  * By J. Stuart McMurray
  * Created 20231130
- * Last Modified 20231218
+ * Last Modified 20240118
  */
 
 import (
@@ -90,9 +90,6 @@ func (c *Client) handleTaskQueuedEvent(name string, data def.EDLMTaskQueued) {
 // handleTaskRequestEvent is called whenever the server says an implant called
 // for tasking.
 func (c *Client) handleTaskRequestEvent(name string, data def.EDLMTaskRequest) {
-	/* Friendly name for logging. */
-	idn := iName(data.ID)
-
 	/* Log message buffer. */
 	var sb strings.Builder
 	sb.WriteString("[CALLBACK] ")
@@ -108,7 +105,7 @@ func (c *Client) handleTaskRequestEvent(name string, data def.EDLMTaskRequest) {
 		if t := data.Task; "" != t {
 			fmt.Fprintf(&sb, "%q ", t)
 		}
-		fmt.Fprintf(&sb, "to %s: %s", idn, data.Error)
+		fmt.Fprintf(&sb, "to %s: %s", data.ID, data.Error)
 		return
 	}
 
@@ -117,7 +114,7 @@ func (c *Client) handleTaskRequestEvent(name string, data def.EDLMTaskRequest) {
 		fmt.Fprintf(
 			&sb,
 			"Sent task to %s (qlen %d):\n%s",
-			idn,
+			data.ID,
 			data.QLen,
 			data.Task,
 		)
@@ -126,7 +123,7 @@ func (c *Client) handleTaskRequestEvent(name string, data def.EDLMTaskRequest) {
 
 	/* We didn't send a task.  We only care if we're in debug mode. */
 	if c.Debug {
-		sb.WriteString(idn)
+		sb.WriteString(data.ID)
 		return
 	}
 
@@ -145,8 +142,8 @@ func (c *Client) handleOutputRequestEvent(name string, data def.EDLMOutputReques
 
 	/* Roll a log message. */
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "[OUTPUT] From %s", iName(data.ID)) /* Implant name. */
-	if "" != data.Error {                                /* Error, maybe. */
+	fmt.Fprintf(&sb, "[OUTPUT] From %s", data.ID) /* Implant name. */
+	if "" != data.Error {                         /* Error, maybe. */
 		fmt.Fprintf(&sb, " (error: %s)", data.Error)
 	}
 	switch o := data.Output; o { /* Output or placeholder. */
@@ -209,7 +206,7 @@ func (c *Client) handleListSeenEventAt(
 // handleNewImplantEvent is called when the server tells us it's seen a new
 // Implant ID.
 func (c *Client) handleNewImplantEvent(name string, data def.EDLMNewImplant) {
-	idLogger{c: c, id: data.ID}.logf("[NEW] %s", iName(data.ID))
+	idLogger{c: c, id: data.ID}.logf("[NEW] %s", data.ID)
 }
 
 // handleFileRequestEvent is called when the server tells us someone's asked for
@@ -281,13 +278,4 @@ func (c *Client) handleExfilEvent(name string, data def.EDLMExfil) {
 			data.Filename,
 		)
 	}
-}
-
-// iName returns def.NamelessName if id is the empty string, or id itself if
-// not.
-func iName(id string) string {
-	if "" == id {
-		return def.NamelessName
-	}
-	return id
 }

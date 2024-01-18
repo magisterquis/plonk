@@ -5,7 +5,7 @@ package implantsvr
  * Tests for handlers.go
  * By J. Stuart McMurray
  * Created 20231207
- * Last Modified 20231218
+ * Last Modified 20240118
  */
 
 import (
@@ -204,7 +204,36 @@ func TestHandleTasking_MultipleTasks(t *testing.T) {
 				want,
 			)
 		}
+	}
+}
 
+func TestHandleTasking_NoID(t *testing.T) {
+	rpath := def.TaskPath
+	s, lb := newTestServer(t)
+	nTask := 100
+	tasks := make([]string, 0, 5)
+	for i := 0; i < nTask; i++ {
+		tasks = append(tasks, fmt.Sprintf("t%d", i))
+	}
+	s.SM.Lock()
+	s.SM.C.TaskQ["dummy"] = slices.Clone(tasks)
+	s.SM.Unlock()
+
+	rr := httptest.NewRecorder()
+	rr.Body = new(bytes.Buffer)
+	s.handleTasking(
+		rr,
+		httptest.NewRequest(http.MethodGet, rpath, nil),
+	)
+	if http.StatusOK != rr.Code {
+		t.Fatalf("Non-ok response %d", rr.Code)
+	}
+
+	if got := rr.Body.String(); 0 != len(got) {
+		t.Errorf("Expected no tasking, got:\n%s", got)
+	}
+	if got := lb.String(); 0 != len(got) {
+		t.Errorf("Expected no log, got:\n%s", got)
 	}
 }
 
@@ -243,6 +272,38 @@ func TestHandleOutput(t *testing.T) {
 		t.Errorf(
 			"Last seen implant ID incorrect: got:%s want:%s",
 			haveID,
+			ls0.ID,
+		)
+	}
+}
+
+func TestHandleOutput_NoID(t *testing.T) {
+	haveID := ""
+	haveOutput := "This is Output!\n"
+	rpath := def.OutputPath + "/" + haveID
+	s, lb := newTestServer(t)
+	rr, _ := resrec()
+
+	s.handleOutput(rr, httptest.NewRequest(
+		http.MethodPost,
+		rpath,
+		strings.NewReader(haveOutput),
+	))
+	if http.StatusOK != rr.Code {
+		t.Errorf("Non-ok response %d", rr.Code)
+	}
+
+	if 0 != lb.Len() {
+		t.Errorf("Expected no log, got:\n%s", lb.String())
+	}
+
+	s.SM.Lock()
+	ls0 := s.SM.C.LastSeen[0]
+	s.SM.Unlock()
+	want := def.ISeen{}
+	if ls0 != want {
+		t.Errorf(
+			"Expect no last seen implant, got:\n%#v",
 			ls0.ID,
 		)
 	}

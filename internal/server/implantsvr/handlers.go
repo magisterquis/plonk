@@ -5,7 +5,7 @@ package implantsvr
  * HTTP Handlers
  * By J. Stuart McMurray
  * Created 20231207
- * Last Modified 20231219
+ * Last Modified 20240118
  */
 
 import (
@@ -73,6 +73,9 @@ func (s *Server) handleTasking(w http.ResponseWriter, r *http.Request) {
 	/* Set up logging and get the implant ID. */
 	sl := s.requestLogger(r)
 	id := getID(r)
+	if "" == id { /* Need an ID. */
+		return
+	}
 	sl = sl.With(def.LKID, id)
 
 	/* Get the next task and note we've seen this one. */
@@ -109,6 +112,9 @@ func (s *Server) handleOutput(w http.ResponseWriter, r *http.Request) {
 	/* Set up logging and get the implant ID. */
 	sl := s.requestLogger(r)
 	id := getID(r)
+	if "" == id { /* Need an ID. */
+		return
+	}
 	sl = sl.With(def.LKID, id)
 
 	/* Note we've seen the implant. */
