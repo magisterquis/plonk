@@ -10,3 +10,4 @@ v0.0.1-beta.2
 - Die with a warning if the user seems to have mixed up `-server` and client
   flags
 - Default prompt now has a big `P`
+- Don't allow IDless implant IDs
