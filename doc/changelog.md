@@ -11,3 +11,4 @@ v0.0.1-beta.2
   flags
 - Default prompt now has a big `P`
 - Don't allow IDless implant IDs
+- Suggest `setcap` on Linux if listening fails

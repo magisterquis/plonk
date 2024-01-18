@@ -6,18 +6,21 @@ package main
  * Really simple HTTP-based C2 server
  * By J. Stuart McMurray
  * Created 20231104
- * Last Modified 20240117
+ * Last Modified 20240118
  */
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"sync"
 
 	"github.com/magisterquis/plonk/internal/client"
@@ -234,7 +237,22 @@ Options:
 		ExfilMax:          uint64(exfilMax),
 	}
 	if err := svr.Start(); nil != err {
-		log.Fatalf("Error starting server: %s", err)
+		msg := fmt.Sprintf("Error starting server: %s", err)
+		/* On Linux, EACCES is a good sign we can't listen on 443. */
+		var noe *net.OpError
+		if "linux" == runtime.GOOS &&
+			errors.Is(err, unix.EACCES) &&
+			errors.As(err, &noe) &&
+			"listen" == noe.Op {
+			/* On Linux if we can't bind to a port it's probably that we're
+			trying to bind <1024 without the right capabilities. */
+			msg += fmt.Sprintf(
+				"\nDo you need to\n\tsudo setcap "+
+					"cap_net_bind_service+ep %s",
+				os.Args[0],
+			)
+		}
+		log.Fatalf("%s", msg)
 	}
 
 	/* Kill the server nicely on Ctrl+C et al. */
