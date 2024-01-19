@@ -150,7 +150,7 @@ func TestShellV(t *testing.T) {
 	}
 }
 
-func TestEscapeCodes(t *testing.T) {
+func TestShellEscape(t *testing.T) {
 	c1, c2 := net.Pipe()
 	defer c1.Close()
 	defer c2.Close()
