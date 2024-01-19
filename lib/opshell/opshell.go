@@ -21,6 +21,7 @@ import (
 
 // Shell represents the interface between an operator and the rest of the
 // program.  See the documentation for Shell.V for more information about T.
+// Use Config.New to create a new shell.
 type Shell[T any] struct {
 	/* Output streams. */
 	stdout    io.Writer
