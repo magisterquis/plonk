@@ -6,7 +6,7 @@ package opshell
  * Operator's interactive shell
  * By J. Stuart McMurray
  * Created 20231112
- * Last Modified 20231207
+ * Last Modified 20240119
  */
 
 import (
@@ -16,6 +16,7 @@ import (
 	"sync/atomic"
 
 	"github.com/magisterquis/plonk/lib/subcom"
+	"golang.org/x/term"
 )
 
 // Shell represents the interface between an operator and the rest of the
@@ -30,9 +31,10 @@ type Shell[T any] struct {
 
 	/* Termish functions.  For a description, see the similarly-named
 	functions in golang.org/x/term.Terminal. */
-	readLine  func() (string, error)
-	setPrompt func(string)
-	setSize   func(int, int) error
+	readLine    func() (string, error)
+	setPrompt   func(string)
+	setSize     func(int, int) error
+	escapeCodes func() *term.EscapeCodes
 
 	isPTY bool /* True if we're in PTY mode. */
 
@@ -49,6 +51,10 @@ type Shell[T any] struct {
 
 // ReadLine reads a line from s.
 func (s *Shell[T]) ReadLine() (string, error) { return s.readLine() }
+
+// Escape returns the shell's escape sequences.  See term.EscapeCodes for more
+// information.
+func (s *Shell[T]) Escape() *term.EscapeCodes { return s.escapeCodes() }
 
 // V returns a value of type T which may be used to store persistent state
 // during the shell's lifetime (e.g. between handled commands).  When the Shell

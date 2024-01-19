@@ -5,15 +5,19 @@ package opshell
  * Operator's interactive shell
  * By J. Stuart McMurray
  * Created 20231112
- * Last Modified 20231128
+ * Last Modified 20240119
  */
 
 import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"os"
+	"reflect"
 	"testing"
+
+	"golang.org/x/term"
 )
 
 func testSetDefaultHelper[T comparable](
@@ -143,5 +147,45 @@ func TestShellV(t *testing.T) {
 			got,
 			want,
 		)
+	}
+}
+
+func TestEscapeCodes(t *testing.T) {
+	c1, c2 := net.Pipe()
+	defer c1.Close()
+	defer c2.Close()
+	for _, c := range []struct {
+		name string
+		conf Config[int]
+		ec   *term.EscapeCodes
+	}{{
+		name: "with_TTY",
+		conf: Config[int]{
+			Reader:      c1,
+			Writer:      c1,
+			ErrorWriter: c1,
+			PTYMode:     PTYForce,
+		},
+		ec: term.NewTerminal(c1, "").Escape,
+	}, {
+		name: "no_TTY",
+		conf: Config[int]{
+			Reader:      c1,
+			Writer:      c1,
+			ErrorWriter: c1,
+			PTYMode:     PTYDisable,
+		},
+		ec: new(term.EscapeCodes),
+	}} {
+		c := c /* :C */
+		t.Run(c.name, func(t *testing.T) {
+			s, err := c.conf.New()
+			if nil != err {
+				t.Fatalf("Error creating shell: %s", err)
+			}
+			if !reflect.DeepEqual(s.Escape(), c.ec) {
+				t.Errorf("Escape codes not equal")
+			}
+		})
 	}
 }

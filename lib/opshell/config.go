@@ -5,7 +5,7 @@ package opshell
  * Config to create a Shell
  * By J. Stuart McMurray
  * Created 20231128
- * Last Modified 20231207
+ * Last Modified 20240119
  */
 
 import (
@@ -112,6 +112,7 @@ func (c Config[T]) New() (*Shell[T], error) {
 	s.readLine = t.ReadLine
 	s.setPrompt = t.SetPrompt
 	s.setSize = t.SetSize
+	s.escapeCodes = func() *term.EscapeCodes { return t.Escape }
 	s.isPTY = true
 
 	/* If we have a terminal, try to put it in raw mode. */
@@ -174,6 +175,8 @@ func newNotPTY[T any](conf Config[T], s *Shell[T]) error {
 	/* No-ops for PTY things. */
 	s.setPrompt = func(string) {}
 	s.setSize = func(int, int) error { return nil }
+	ec := new(term.EscapeCodes)
+	s.escapeCodes = func() *term.EscapeCodes { return ec }
 
 	return nil
 }
