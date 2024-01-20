@@ -5,7 +5,7 @@ future.  To test the
 [new version](https://github.com/magisterquis/plonk/tree/v0.0.1-beta.2),
 install with
 ```sh
-go install github.com/magisterquis/plonk@v0.0.1-beta.1
+go install github.com/magisterquis/plonk@v0.0.1-beta.2
 ```
 and read the `-h` output.  It's significantly different.
 
