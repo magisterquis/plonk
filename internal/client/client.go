@@ -111,12 +111,6 @@ func (c *Client) Start() error {
 		Description: "Gracefully quit",
 		Handler:     quitHandler,
 	}, {
-		Name:    ",task",
-		ArgHelp: "<task>",
-		Description: "Queue up a task for an implant; " +
-			"usually superfluous",
-		Handler: enqueueHandler,
-	}, {
 		Name:        ",seti",
 		ArgHelp:     "<implant ID>",
 		Description: "Interact with an implant",

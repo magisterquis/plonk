@@ -29,31 +29,6 @@ type shell = *opshell.Shell[*Client]
 // quitHandler gently quits.
 func quitHandler(s shell, name, args []string) error { return opshell.ErrQuit }
 
-// enqueueHandler asks the server to queue up a task for an implant.
-func enqueueHandler(s shell, name, args []string) error {
-	/* Make sure we have an implant. */
-	id := s.V().id.Load()
-	if nil == id || "" == *id {
-		s.ErrorLogf("Please set an implant ID first with ,seti")
-		return nil
-	}
-
-	/* Make sure we have a task. */
-	if 0 == len(args) || "" == args[0] {
-		s.ErrorLogf("Need a task to send, please")
-		return nil
-	}
-
-	/* Send a message to the server. */
-	if err := s.V().es.Send(def.ENEnqueue, def.EDEnqueue{
-		ID:   *id,
-		Task: args[0],
-	}); nil != err {
-		return fmt.Errorf("sending event: %w", err)
-	}
-	return nil
-}
-
 // setiHandler sets the Implant ID.  If it's called as ,logs, it sets us back
 // to just watching logs.
 func setiHandler(s shell, name, args []string) error {
@@ -143,22 +118,17 @@ func commandErrorHandler(s shell, line string, err error) error {
 func commandNotFoundHandler(s shell, line string, err error) error {
 	idp := s.V().id.Load()
 	/* If we don't have an implant teed up, probably a typo. */
-	if nil == idp {
+	if nil == idp || "" == *idp {
 		s.Logf("I've not heard of that one, sorry.  Need ,seti?")
 		return nil
 	}
 
-	/* If it didn't start with a comma, it's probably for the implant. */
-	if !strings.HasPrefix(strings.TrimSpace(line), ",") {
-		return enqueueHandler(s, nil, []string{line})
-
+	/* We do have an implant, then.  We'll send it along. */
+	if err := s.V().es.Send(def.ENEnqueue, def.EDEnqueue{
+		ID:   *idp,
+		Task: line,
+	}); nil != err {
+		return fmt.Errorf("sending enqueue event: %w", err)
 	}
-
-	/* If it started with a comma, probably a typo. */
-	s.Logf(
-		"Looks like a typo.  "+
-			"If it was meant for %s, please use ,task.",
-		*idp,
-	)
 	return nil
 }

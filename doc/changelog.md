@@ -19,3 +19,4 @@ v0.0.1-beta.2
   long enough, for use with single output streams; watch out for `ulimit -n`
 - Append a newline to tasking; save humanity from more awkward loops
 - Removed `,name` command, as it was more confusing than helpful
+- Removed `,task` command, as it was more confusing than `,name`
