@@ -225,7 +225,10 @@ func (c *Client) handleListSeenEventAt(
 // handleNewImplantEvent is called when the server tells us it's seen a new
 // Implant ID.
 func (c *Client) handleNewImplantEvent(name string, data def.EDLMNewImplant) {
-	idLogger{c: c, id: data.ID}.logf("[NEW] %s", data.ID)
+	idLogger{c: c, id: data.ID}.logf("%s", c.Color(
+		opshell.Magenta,
+		fmt.Sprintf("[NEW IMPLANT] %s", data.ID),
+	))
 }
 
 // handleFileRequestEvent is called when the server tells us someone's asked for
