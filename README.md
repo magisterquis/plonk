@@ -78,15 +78,15 @@ plonk  # Connect to the server as an operator
 #                    ||     ||
 #    2023/12/29 22:53:26 [OPERATOR] Connected: h4x0r (cnum:1)
 #    (plonk)>
-,list  # See what's called back
+,i  # See what's called back
 # Should be the same ID as in the log output from above:
 #    ID                         From        Last Seen
 #    --                         ----        ---------
 #    57i-target.my.domain-9924  [REDACTED]  2023-12-29T22:54:42Z (4.939s)
-,seti 57i-target.my.domain-9924 # Interact with our target, but with the right ID
+,i 57i-target.my.domain-9924 # Interact with our target, but with the right ID
 # Timestamps are handy to work out what happens and when, turns out.
 #    2023/12/29 22:58:37 Interacting with 57i-target.my.domain-9924
-#    2023/12/29 22:58:37 Use ,logs to return to watching Plonk's logs
+#    2023/12/29 22:58:37 Use ,l to return to watching Plonk's logs
 ps awwwfux  # Run a command on target
 # Plonk is HTTP-based; we get notified when the task is queued, send, and run
 #    2023/12/29 22:58:42 [TASKQ] Task queued by h4x0r for 57i-target.my.domain-9924 (qlen 1)
