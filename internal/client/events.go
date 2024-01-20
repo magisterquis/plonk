@@ -5,7 +5,7 @@ package client
  * Respond to events sent by the server.
  * By J. Stuart McMurray
  * Created 20231130
- * Last Modified 20240119
+ * Last Modified 20240120
  */
 
 import (
@@ -180,6 +180,14 @@ func (c *Client) handleOutputRequestEvent(name string, data def.EDLMOutputReques
 // handleListSeenEvent is called when we get an implant seen list from the
 // server.
 func (c *Client) handleListSeenEvent(name string, data def.EDSeen) {
+	/* If we got the list because the user ,i -last, don't print
+	anything. */
+	if f := c.psidList.Swap(nil); nil != f {
+		(*f)(data)
+		return
+	}
+
+	/* Print out the list. */
 	c.handleListSeenEventAt(name, data, time.Now())
 }
 
@@ -225,10 +233,17 @@ func (c *Client) handleListSeenEventAt(
 // handleNewImplantEvent is called when the server tells us it's seen a new
 // Implant ID.
 func (c *Client) handleNewImplantEvent(name string, data def.EDLMNewImplant) {
-	idLogger{c: c, id: data.ID}.logf("%s", c.Color(
-		opshell.Magenta,
+	/* Log the new implant. */
+	idLogger{c: c, id: data.ID}.logf("%s", c.color(
+		opshell.ColorMagenta,
 		fmt.Sprintf("[NEW IMPLANT] %s", data.ID),
 	))
+
+	/* If the user wanted to interact with the next-seen implant, also
+	set it as the current ID. */
+	if f := c.psidNew.Swap(nil); nil != f {
+		(*f)(data)
+	}
 }
 
 // handleFileRequestEvent is called when the server tells us someone's asked for

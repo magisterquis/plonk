@@ -35,3 +35,20 @@ the -self-signed flag.
 Proper TLS certificates may be obtained from Let's Encrypt by pointing a domain
 name at Plonk and using -letsencrypt.  Make sure Let's Encrypt can reach Plonk
 on port 443
+
+-- ,i --
+Implant selection
+
+Implants all call back with an ID, given as part of the URL after /t or /o.  To
+interact with one, use the ,i command with an ID, like
+        ,i 10nv-kittens-44222
+to select the implant 10nv-kittens-44222 or for a list of previously-seen IDs
+use ,i by itself.
+
+
+There are two pseudo-IDs which can be used with ,i:
+
+-last - Uses the ID of the last-seen implant (i.e., top of the list from
+        ,i-with-no-ID).
+-next - Waits for the next new implant to connect, and uses that.  The current
+        ID won't change until a new implant is seen.

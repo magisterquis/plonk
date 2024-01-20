@@ -56,6 +56,10 @@ type Client struct {
 	reset atomic.Pointer[func() error] /* Reset terminal. */
 	sc    atomic.Pointer[net.UnixConn] /* Connection to Server. */
 	ew    waiter.Waiter[error]
+
+	/* Special event handlers, from pseudo-IDs. */
+	psidList atomic.Pointer[func(def.EDSeen)]
+	psidNew  atomic.Pointer[func(def.EDLMNewImplant)]
 }
 
 // Start starts the client.  Call Wait to wait for it to die, reset the

@@ -22,3 +22,4 @@ v0.0.1-beta.2
 - Removed `,task` command, as it was more confusing than `,name`
 - Unborked `,help topics`, which all now appear and are even sorted sensibly
 - Simplified commands altogether
+- Added ,i -next|-last for easier implant selection

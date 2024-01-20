@@ -18,8 +18,14 @@ import (
 	"github.com/magisterquis/plonk/lib/subcom"
 )
 
-// logsCmd requests to watch logs.
-const logsCmd = ",l"
+const (
+	// logsCmd requests to watch logs.
+	logsCmd = ",l"
+	// lastPsID is a pseudo-ID which ,i's the last-seen ID.
+	lastPsID = "-last"
+	// nextPsID is a pseudo-ID which ,i's the next-seen ID.
+	nextPsID = "-next"
+)
 
 // shell is the type of our shell, used in command handlers.
 type shell = *opshell.Shell[*Client]
@@ -27,16 +33,20 @@ type shell = *opshell.Shell[*Client]
 // quitHandler gently quits.
 func quitHandler(s shell, name, args []string) error { return opshell.ErrQuit }
 
+// requestImplantList requests an implant list be sent our way.
+func requestImplantList(s shell) error {
+	if err := s.V().es.Send(def.ENListSeen, nil); nil != err {
+		return fmt.Errorf("sending event: %s", err)
+	}
+	return nil
+}
+
 // setiHandler sets the Implant ID.  If it's called with no ID, it will send a
 // request for a list of implants.
 func setiHandler(s shell, name, args []string) error {
 	/* If we have no ID, just ask for a list of implants. */
 	if 0 == len(args) {
-		/* Send a request for a list. */
-		if err := s.V().es.Send(def.ENListSeen, nil); nil != err {
-			return fmt.Errorf("sending event: %s", err)
-		}
-		return nil
+		return requestImplantList(s)
 	}
 
 	/* Save the implant ID. */
@@ -45,12 +55,60 @@ func setiHandler(s shell, name, args []string) error {
 		s.ErrorLogf("Need an ID, please")
 		return nil
 	}
-	s.V().id.Store(&id)
 
-	/* Tell the user. */
-	s.SetPrompt(id + opshell.DefaultPrompt)
+	/* setID sets the implant ID. */
+	setID := func(nid string) {
+		/* Set the ID as the current implant ID. */
+		s.V().id.Store(&nid)
+
+		/* Tell the user. */
+		s.SetPrompt(nid + opshell.DefaultPrompt)
+		s.Logf("Use %s to return to watching Plonk's logs", logsCmd)
+	}
+
+	/* Pseudo-IDs get special handling. */
+	switch id {
+	case lastPsID: /* Use the last implant we've seen. */
+		var f func(eds def.EDSeen)
+		f = func(eds def.EDSeen) {
+			/* If we haven't seen any implants, not much we can
+			do. */
+			if 0 == len(eds) || "" == eds[0].ID ||
+				eds[0].When.IsZero() {
+				s.ErrorLogf("Server hasn't seen any implants")
+				return
+			}
+			s.Logf(
+				"Interacting with most recent implant %s",
+				eds[0].ID,
+			)
+			setID(eds[0].ID)
+		}
+		if err := requestImplantList(s); nil != err {
+			return fmt.Errorf("requesting implant list: %w", err)
+		}
+		s.V().psidList.Store(&f)
+		return nil
+	case nextPsID: /* Use the next implant which the server sees. */
+		var f func(ni def.EDLMNewImplant)
+		f = func(ni def.EDLMNewImplant) {
+			s.Logf("Interacting with new implant %s", ni.ID)
+			setID(ni.ID)
+		}
+		s.V().psidNew.Store(&f)
+		return nil
+	}
+
+	/* Prevent calling other ID-setting functions.  We could, in theory,
+	lose a race, but the user will be told which ID is set so it won't be
+	that bad.  This code may need to be made less racy eventually. */
+	s.V().psidList.Store(nil)
+	s.V().psidNew.Store(nil)
+
+	/* Finally, set the implant ID itself. */
 	s.Logf("Interacting with %s", id)
-	s.Logf("Use %s to return to watching Plonk's logs", logsCmd)
+	setID(id)
+
 	return nil
 }
 
