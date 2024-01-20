@@ -27,7 +27,7 @@ Make sure you have [Go](https://go.dev/doc/install) installed.
 ```sh
 # Install Plonk itself.  This can be done on another host, so long as plonk
 # is in PATH on the server or the rest of this section is adjusted accordingly.
-go install github.com/magisterquis/plonk@v0.0.1-beta.1
+go install github.com/magisterquis/plonk@v0.0.1-beta.2
 # Did it work?
 plonk -v
 

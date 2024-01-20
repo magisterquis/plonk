@@ -26,7 +26,7 @@ doas chmod g+rwx /opt/plonk.d
 
 # Make available the plonk binary, changing its default directory to
 # /opt/plonk.d
-go install -ldflags '-X main.DefaultDir=/opt/plonk.d' github.com/magisterquis/plonk@v0.0.1-beta.1
+go install -ldflags '-X main.DefaultDir=/opt/plonk.d' github.com/magisterquis/plonk@v0.0.1-beta.2
 doas mv "$(which plonk)" /usr/local/bin
 
 # Optionally, redirect inbound TCP port 443 to 4433, so we don't need to bind
@@ -68,7 +68,7 @@ sudo chmod g+rwx /opt/plonk.d
 # Make available the plonk binary, changing its default directory to
 # /opt/plonk.d and making it run with our new group as well as the capability
 # to bind to low ports.
-go install -ldflags '-X main.DefaultDir=/opt/plonk.d' github.com/magisterquis/plonk@v0.0.1-beta.1
+go install -ldflags '-X main.DefaultDir=/opt/plonk.d' github.com/magisterquis/plonk@v0.0.1-beta.2
 sudo mv "$(which plonk)" /usr/local/bin
 sudo chgrp plonk_ops /usr/local/bin/plonk
 sudo setcap cap_net_bind_service+ep /usr/local/bin/plonk
