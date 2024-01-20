@@ -23,3 +23,4 @@ v0.0.1-beta.2
 - Unborked `,help topics`, which all now appear and are even sorted sensibly
 - Simplified commands altogether
 - Added ,i -next|-last for easier implant selection
+- Added `,h` topics for other commands

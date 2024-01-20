@@ -52,3 +52,15 @@ There are two pseudo-IDs which can be used with ,i:
         ,i-with-no-ID).
 -next - Waits for the next new implant to connect, and uses that.  The current
         ID won't change until a new implant is seen.
+
+-- ,l --
+Watch server logs
+
+This is the default state.  It's often useful to have another instance of Plonk
+running with the logs displayed.  The server logs even more to its logfile,
+log.json.
+
+-- ,q --
+Graceful exit
+
+So long and thanks for all the fish.
