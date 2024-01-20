@@ -81,10 +81,10 @@ func helpHandler(s shell, name, args []string) error {
 	s.Printf("%s", "\n"+strings.Trim(`
 To get started:
 
-1. ,list to see available implants.
-2. ,seti <ID> to choose an implant.
+1. ,i to see available implants.
+2. ,i <ID> to choose an implant.
 3.  Anything not one of the above commands will be queued as implant tasking.
-4. ,logs to return to watching Plonk's logs.
+4. ,l to return to watching Plonk's logs.
 `, "\n")+"\n")
 	return nil
 }

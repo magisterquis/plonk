@@ -18,10 +18,8 @@ import (
 	"github.com/magisterquis/plonk/lib/subcom"
 )
 
-const (
-	// logsCmd requests to watch logs.
-	logsCmd = ",logs"
-)
+// logsCmd requests to watch logs.
+const logsCmd = ",l"
 
 // shell is the type of our shell, used in command handlers.
 type shell = *opshell.Shell[*Client]
@@ -29,52 +27,20 @@ type shell = *opshell.Shell[*Client]
 // quitHandler gently quits.
 func quitHandler(s shell, name, args []string) error { return opshell.ErrQuit }
 
-// setiHandler sets the Implant ID.  If it's called as ,logs, it sets us back
-// to just watching logs.
+// setiHandler sets the Implant ID.  If it's called with no ID, it will send a
+// request for a list of implants.
 func setiHandler(s shell, name, args []string) error {
-	/* If we're watching logs, go back to no implant ID. */
-	if 0 != len(name) && logsCmd == name[len(name)-1] {
-		/* If we're already watching logs, the user probably goofed. */
-		if nil == s.V().id.Load() {
-			s.Logf("Already watching Plonk's logs")
-			return nil
+	/* If we have no ID, just ask for a list of implants. */
+	if 0 == len(args) {
+		/* Send a request for a list. */
+		if err := s.V().es.Send(def.ENListSeen, nil); nil != err {
+			return fmt.Errorf("sending event: %s", err)
 		}
-		/* Note we're no longer watching an implant. */
-		s.V().id.Store(nil)
-		s.SetPrompt(def.LogsPrompt)
-		/* Give the user the missed logs, if any. */
-		lls := s.V().lr.MessagesAndClear()
-		msg := "\t" + strings.Replace(
-			strings.Join(lls, "\n"),
-			"\n",
-			"\n\t",
-			-1,
-		)
-		switch {
-		case 0 == len(lls): /* Easy day. */
-		case len(lls) == s.V().lr.Cap(): /* Missed lotsa messages. */
-			s.Logf(
-				"Last %d missed log messages:\n%s",
-				len(lls),
-				msg,
-			)
-		default: /* Got all the messages we missed. */
-			s.Logf(
-				"Missed %d log messages:\n%s",
-				len(lls),
-				msg,
-			)
-		}
-		/* Tell him we're watching logs. */
-		s.Logf("Watching plonk's own logs")
 		return nil
 	}
 
 	/* Save the implant ID. */
-	var id string
-	if 0 != len(args) {
-		id = args[0]
-	}
+	id := strings.Join(args, "")
 	if "" == id {
 		s.ErrorLogf("Need an ID, please")
 		return nil
@@ -88,12 +54,45 @@ func setiHandler(s shell, name, args []string) error {
 	return nil
 }
 
-// listHandler requests a list of recently-seen Implants.
-func listHandler(s shell, name, args []string) error {
-	/* Send a request for a list. */
-	if err := s.V().es.Send(def.ENListSeen, nil); nil != err {
-		return fmt.Errorf("sending event: %s", err)
+// logsHandler goes to streaming logs.  It also prints the previously-missed
+// log entries.
+func logsHandler(s shell, name, args []string) error {
+	/* If we're already watching logs, the user probably goofed. */
+	if nil == s.V().id.Load() {
+		s.Logf("Already watching Plonk's logs")
+		return nil
 	}
+
+	/* Note we're no longer watching an implant. */
+	s.V().id.Store(nil)
+	s.SetPrompt(def.LogsPrompt)
+
+	/* Give the user the missed logs, if any. */
+	lls := s.V().lr.MessagesAndClear()
+	msg := "\t" + strings.Replace(
+		strings.Join(lls, "\n"),
+		"\n",
+		"\n\t",
+		-1,
+	)
+	switch {
+	case 0 == len(lls): /* Easy day. */
+	case len(lls) == s.V().lr.Cap(): /* Missed lotsa messages. */
+		s.Logf(
+			"Last %d missed log messages:\n%s",
+			len(lls),
+			msg,
+		)
+	default: /* Got all the messages we missed. */
+		s.Logf(
+			"Missed %d log messages:\n%s",
+			len(lls),
+			msg,
+		)
+	}
+
+	/* Tell him we're watching logs. */
+	s.Logf("Watching plonk's own logs")
 	return nil
 }
 

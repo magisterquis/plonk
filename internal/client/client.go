@@ -26,10 +26,10 @@ import (
 )
 
 // welcomeMessage welcomes the user to Plonk.
-const welcomeMessage = ` ___________________________
-/     Welcome to Plonk!     \
-\ Try ,help to get started. /
- ---------------------------
+const welcomeMessage = ` ________________________
+/   Welcome to Plonk!    \
+\ Try ,h to get started. /
+ ------------------------
         \   ^__^
          \  (oo)\_______
             (__)\       )\/\
@@ -102,28 +102,25 @@ func (c *Client) Start() error {
 	c.shell.SetSplitter(opshell.CutCommand)
 	c.shell.SetCommandErrorHandler(commandErrorHandler)
 	subcom.AddSpecs(c.shell.Cdr(), []subcom.Spec[shell]{{
-		Name:        ",help",
+		Name:        ",h",
 		ArgHelp:     "[topic]",
-		Description: "This help; try \",help topics\"",
+		Description: "This help; try \",h topics\"",
 		Handler:     helpHandler,
 	}, {
-		Name:        ",quit",
+		Name:        ",q",
 		Description: "Gracefully quit",
 		Handler:     quitHandler,
 	}, {
-		Name:        ",seti",
-		ArgHelp:     "<implant ID>",
-		Description: "Interact with an implant",
-		Handler:     setiHandler,
+		Name:    ",i",
+		ArgHelp: "[implant ID]",
+		Description: "Interact with (with an ID) or " +
+			"list (without) implants",
+		Handler: setiHandler,
 	}, {
 		Name: logsCmd,
 		Description: "Interact with no implant and " +
 			"just watch Plonk's logs",
-		Handler: setiHandler,
-	}, {
-		Name:        ",list",
-		Description: "List recently-seen implants",
-		Handler:     listHandler,
+		Handler: logsHandler,
 	}})
 
 	/* Set up to receive events from the server. */
