@@ -6,7 +6,7 @@ package def
  * Defined constants
  * By J. Stuart McMurray
  * Created 20231110
- * Last Modified 20240119
+ * Last Modified 20240120
  */
 
 import (
@@ -51,6 +51,7 @@ const (
 	LogsPrompt        = "(Plonk)> "      /* opshell prompt for log-watching. */
 	MaxExfilOpenTries = 100              /* Maximum number of exfil filenames to try. */
 	MaxOutput         = 1 * 1024 * 1024  /* Output stops at 1MB. */
+	OutputWait        = time.Second      /* Time to wait between chunks of output. */
 	NSeen             = 10               /* Max number of seen IDs. */
 	NReplayLogs       = 10               /* Number of logs to show with ,logs. */
 	OpNameWait        = 10 * time.Second /* Wait for operator's name. */

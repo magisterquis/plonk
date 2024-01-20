@@ -5,7 +5,7 @@ package implantsvr
  * HTTP Handlers
  * By J. Stuart McMurray
  * Created 20231207
- * Last Modified 20240118
+ * Last Modified 20240120
  */
 
 import (
@@ -17,6 +17,7 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -118,26 +119,94 @@ func (s *Server) handleOutput(w http.ResponseWriter, r *http.Request) {
 	sl = sl.With(def.LKID, id)
 
 	/* Note we've seen the implant. */
-	s.SM.Lock()
-	s.SM.C.Saw(id, r.RemoteAddr)
-	s.SM.Unlock()
-	s.logIfNew(id)
+	noteSeen := func() {
+		s.SM.Lock()
+		s.SM.C.Saw(id, r.RemoteAddr)
+		s.SM.Unlock()
+		s.logIfNew(id)
+	}
+	noteSeen()
 
-	/* Get the output. */
-	o, err := io.ReadAll(r.Body)
-	o = bytes.TrimRight(o, "\n")
-	if 0 != len(o) {
-		sl = sl.With(def.LKOutput, string(o))
+	/* Get a timeoutable reader for the body. */
+	cr, cw := net.Pipe()
+	defer cr.Close()
+	defer cw.Close()
+	ech := make(chan error, 2)
+	go func() {
+		_, err := io.Copy(cw, r.Body)
+		if nil != err {
+			ech <- fmt.Errorf("reading output: %w", err)
+		} else {
+			ech <- nil
+		}
+		cw.Close()
+	}()
+
+	/* Read chunks of output. */
+	var (
+		gotOutput bool
+		b         bytes.Buffer
+		te        interface{ Timeout() bool }
+	)
+	for {
+		/* Don't re-use output. */
+		b.Reset()
+
+		/* Don't wait too long for output. */
+		if err := cr.SetReadDeadline(
+			time.Now().Add(def.OutputWait),
+		); nil != err {
+			/* Something has gone very wrong. */
+			ech <- fmt.Errorf(
+				"setting read deadline: %w",
+				err,
+			)
+			break
+		}
+
+		/* Try to get a chunk of output. */
+		n, err := b.ReadFrom(cr)
+
+		/* Note we've seen the implant. */
+		noteSeen()
+
+		/* If we got some, log it and try again if we didn't also get
+		an error. */
+		if 0 != n {
+			sl.With(def.LKOutput, string(
+				bytes.TrimRight(b.Bytes(), "\n"),
+			)).Info(def.LMOutputRequest)
+			gotOutput = true
+			continue
+		}
+
+		/* If we just had a timeout, try again. */
+		if errors.As(err, &te) && te.Timeout() {
+			continue
+		}
+
+		/* Everything else is a real error. */
+		ech <- fmt.Errorf("buffering output: %w", err)
+		break
 	}
 
-	/* Figure out what to send back. */
-	switch {
-	case nil != err: /* Failed to read body properly. */
+	/* For just in case, we'll close the pipe so the goroutine puts
+	something in ech.  This is redundant, but won't hurt. */
+	cr.Close()
+	cw.Close()
+
+	/* We should have a proper error by now, which may well not really be
+	an error. */
+	if err := <-ech; nil != err &&
+		!errors.Is(err, io.EOF) &&
+		!errors.Is(err, io.ErrUnexpectedEOF) {
 		plog.WarnError(sl, def.LMOutputRequest, err)
-	case 0 == len(o): /* Empty output. */
+		return
+	}
+
+	/* If we just didn't get any output, log it for debugging. */
+	if !gotOutput {
 		sl.Debug(def.LMOutputRequest)
-	default: /* Empty output. */
-		sl.Info(def.LMOutputRequest)
 	}
 }
 

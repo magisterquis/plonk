@@ -15,3 +15,5 @@ v0.0.1-beta.2
 - Took a first whack at colorful output; set `PLONK_COLORIZE=true` in the Plonk
   client's environment to try it
 - Added `make install`
+- Output is now displayed before the request to `/o` finishes, if it's taking
+  long enough, for use with single output streams; watch out for `ulimit -n`
