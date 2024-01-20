@@ -5,7 +5,7 @@ package client
  * Command handlers
  * By J. Stuart McMurray
  * Created 20231206
- * Last Modified 20240118
+ * Last Modified 20240120
  */
 
 import (
@@ -28,23 +28,6 @@ type shell = *opshell.Shell[*Client]
 
 // quitHandler gently quits.
 func quitHandler(s shell, name, args []string) error { return opshell.ErrQuit }
-
-// nameHandler asks the server to call us something else.
-func nameHandler(s shell, name, args []string) error {
-	/* Make sure we have a name. */
-	if 0 == len(args) || "" == args[0] {
-		s.ErrorLogf(
-			"Plese also supply the name by which " +
-				"you wish to be known.",
-		)
-		return nil
-	}
-	/* Send it to the server. */
-	if err := s.V().es.Send(def.ENName, args[0]); nil != err {
-		return fmt.Errorf("sending event: %w", err)
-	}
-	return nil
-}
 
 // enqueueHandler asks the server to queue up a task for an implant.
 func enqueueHandler(s shell, name, args []string) error {

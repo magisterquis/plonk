@@ -6,7 +6,7 @@ package client
  * Interactive plonk client
  * By J. Stuart McMurray
  * Created 20231130
- * Last Modified 20240119
+ * Last Modified 20240120
  */
 
 import (
@@ -110,11 +110,6 @@ func (c *Client) Start() error {
 		Name:        ",quit",
 		Description: "Gracefully quit",
 		Handler:     quitHandler,
-	}, {
-		Name:        ",name",
-		ArgHelp:     "<operator name>",
-		Description: "Change the name used for logging",
-		Handler:     nameHandler,
 	}, {
 		Name:    ",task",
 		ArgHelp: "<task>",

