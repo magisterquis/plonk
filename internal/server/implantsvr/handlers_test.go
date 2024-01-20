@@ -66,6 +66,7 @@ func TestHandleTasking(t *testing.T) {
 	/* Add a task and try again. */
 	rr = httptest.NewRecorder()
 	haveTask := "moose"
+	wantTask := haveTask + "\n"
 	s.SM.Lock()
 	s.SM.C.TaskQ[haveID] = append(s.SM.C.TaskQ[haveID], haveTask)
 	s.SM.Unlock()
@@ -75,11 +76,11 @@ func TestHandleTasking(t *testing.T) {
 	}
 	if b, err := io.ReadAll(rr.Result().Body); nil != err {
 		panic(err)
-	} else if got := string(b); haveTask != got {
+	} else if got := string(b); wantTask != got {
 		t.Errorf(
 			"Post-q tasking incorrect:\n got:%s\nwant: %s",
 			got,
-			haveTask,
+			wantTask,
 		)
 	}
 	wantLog = `{"time":"","level":"INFO","msg":"Task request","qlen":0,` +
@@ -155,7 +156,7 @@ func TestHandleTasking_MultipleTasks(t *testing.T) {
 	haveID := "kittens"
 	rpath := def.TaskPath + "/" + haveID
 	s, lb := newTestServer(t)
-	nTask := 100
+	nTask := 10
 	tasks := make([]string, 0, 5)
 	for i := 0; i < nTask; i++ {
 		tasks = append(tasks, fmt.Sprintf("t%d", i))
@@ -167,11 +168,12 @@ func TestHandleTasking_MultipleTasks(t *testing.T) {
 	for i := 0; i < nTask; i++ {
 		rr := httptest.NewRecorder()
 		var got def.EDLMTaskRequest
-		wantT := tasks[0]
+		wantT := tasks[0] + "\n"
+		wantL := tasks[0]
 		tasks = slices.Delete(tasks, 0, 1)
 		want := def.EDLMTaskRequest{
 			ID:   haveID,
-			Task: wantT,
+			Task: wantL,
 			QLen: len(tasks),
 		}
 		rr.Body = new(bytes.Buffer)

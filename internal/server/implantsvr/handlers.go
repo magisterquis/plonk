@@ -97,9 +97,11 @@ func (s *Server) handleTasking(w http.ResponseWriter, r *http.Request) {
 	sl = sl.With(def.LKQLen, len(s.SM.C.TaskQ[id]))
 
 	/* Send it back and log it. */
-	if _, err := io.WriteString(w, t); nil != err {
-		plog.WarnError(sl, def.LMTaskRequest, err)
-		return
+	if "" != t {
+		if _, err := io.WriteString(w, t+"\n"); nil != err {
+			plog.WarnError(sl, def.LMTaskRequest, err)
+			return
+		}
 	}
 	if "" == t {
 		sl.Debug(def.LMTaskRequest)
