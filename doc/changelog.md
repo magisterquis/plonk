@@ -14,3 +14,4 @@ v0.0.1-beta.2
 - Suggest `setcap` on Linux if listening fails
 - Took a first whack at colorful output; set `PLONK_COLORIZE=true` in the Plonk
   client's environment to try it
+- Added `make install`

@@ -2,7 +2,7 @@
 # Build Plonk
 # By J. Stuart McMurray
 # Created 20230429
-# Last Modified 20231210
+# Last Modified 20240120
 
 BINNAME!=basename $$(pwd)
 BUILDFLAGS=-trimpath -ldflags "-w -s"
@@ -26,6 +26,9 @@ longtest:
 	
 build:
 	go build ${BUILDFLAGS} -o ${BINNAME}
+
+install:
+	go install ${BUILDFLAGS}
 
 clean:
 	rm -f ${BINNAME}
