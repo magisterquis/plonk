@@ -6,7 +6,7 @@ package client
  * Interactive plonk client
  * By J. Stuart McMurray
  * Created 20231130
- * Last Modified 20231222
+ * Last Modified 20240119
  */
 
 import (
@@ -39,9 +39,10 @@ const welcomeMessage = ` ___________________________
 // Client implements the server side of Plonk.  Before starting, its public
 // fields should be populated.
 type Client struct {
-	Dir   string
-	Debug bool
-	Name  string /* Operator name. */
+	Dir      string
+	Debug    bool
+	Name     string /* Operator name. */
+	Colorize bool   /* Output with colors. */
 
 	/* I/O streams, which may be TTYs. */
 	Stdin  io.Reader /* Default: os.Stdin. */
@@ -230,6 +231,17 @@ func (c *Client) Debugf(format string, args ...any) {
 		return
 	}
 	c.shell.Logf(format, args...)
+}
+
+// color adds the color to s, as appropriate for c's shell, if c.Colorize is
+// set.
+func (c *Client) color(oc opshell.Color, s string) string {
+	/* Don't bother if we're not coloring things. */
+	if !c.Colorize {
+		return s
+	}
+	return c.shell.Color(oc, s)
+
 }
 
 // noIDLogf logs with c.shell.Logf if we're not watching any implant, or

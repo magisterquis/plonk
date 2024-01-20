@@ -5,7 +5,7 @@ package client
  * Respond to events sent by the server.
  * By J. Stuart McMurray
  * Created 20231130
- * Last Modified 20240118
+ * Last Modified 20240119
  */
 
 import (
@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/magisterquis/plonk/internal/def"
+	"github.com/magisterquis/plonk/lib/opshell"
 )
 
 // handleUnknownEvent is called when the server sends an event we're not
@@ -79,7 +80,10 @@ func (c *Client) handleOpConnectedEvent(name string, data def.EDLMOpConnected) {
 func (c *Client) handleTaskQueuedEvent(name string, data def.EDLMTaskQueued) {
 	/* Log the queued task. */
 	idLogger{c: c, id: data.ID}.logf(
-		"[TASKQ] Task queued by %s for %s (qlen %d)\n%s",
+		c.color(
+			opshell.ColorBlue,
+			"[TASKQ] Task queued by %s for %s (qlen %d):",
+		)+"\n%s",
 		data.OpName,
 		data.ID,
 		data.QLen,
@@ -95,7 +99,12 @@ func (c *Client) handleTaskRequestEvent(name string, data def.EDLMTaskRequest) {
 	sb.WriteString("[CALLBACK] ")
 	defer func() {
 		if 0 != sb.Len() {
-			idLogger{c: c, id: data.ID}.logf("%s", sb.String())
+			h, t, found := strings.Cut(sb.String(), "\n")
+			s := c.color(opshell.ColorCyan, h)
+			if found {
+				s += "\n" + t
+			}
+			idLogger{c: c, id: data.ID}.logf("%s", s)
 		}
 	}()
 
@@ -113,7 +122,10 @@ func (c *Client) handleTaskRequestEvent(name string, data def.EDLMTaskRequest) {
 	if "" != data.Task {
 		fmt.Fprintf(
 			&sb,
-			"Sent task to %s (qlen %d):\n%s",
+			c.color(
+				opshell.ColorCyan,
+				"Sent task to %s (qlen %d):",
+			)+"\n%s",
 			data.ID,
 			data.QLen,
 			data.Task,
@@ -140,18 +152,25 @@ func (c *Client) handleOutputRequestEvent(name string, data def.EDLMOutputReques
 		return
 	}
 
-	/* Roll a log message. */
+	/* Roll the first line of the output message. */
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "[OUTPUT] From %s", data.ID) /* Implant name. */
 	if "" != data.Error {                         /* Error, maybe. */
 		fmt.Fprintf(&sb, " (error: %s)", data.Error)
 	}
-	switch o := data.Output; o { /* Output or placeholder. */
-	case "": /* No output. */
+	if "" == data.Output {
 		sb.WriteString(" (empty)")
-	default: /* Output. */
+	}
+	sb.WriteRune(':')
+	/* If we're coloring, do so and rebuffer. */
+	l := c.color(opshell.ColorGreen, sb.String())
+	sb.Reset()
+	sb.WriteString(l)
+
+	/* If we have output, add that after the first line. */
+	if "" != data.Output {
 		sb.WriteString("\n")
-		sb.WriteString(o)
+		sb.WriteString(data.Output)
 	}
 
 	/* Send it back to the user. */

@@ -6,7 +6,7 @@ package def
  * Defined constants
  * By J. Stuart McMurray
  * Created 20231110
- * Last Modified 20240118
+ * Last Modified 20240119
  */
 
 import (
@@ -24,6 +24,7 @@ var (
 	StaticFilesDir = "files"
 	TemplateFile   = "implant.tmpl"
 	DirEnvVar      = "PLONK_DIRECTORY"
+	ColorEnvVar    = "PLONK_COLORIZE"
 )
 
 // Request URL paths.

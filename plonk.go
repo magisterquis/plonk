@@ -200,9 +200,10 @@ Options:
 
 		/* We look clientish, connect and go. */
 		c := &client.Client{
-			Dir:   *dir,
-			Debug: *debug,
-			Name:  *opName,
+			Dir:      *dir,
+			Debug:    *debug,
+			Name:     *opName,
+			Colorize: "" != os.Getenv(def.ColorEnvVar),
 		}
 		if err := c.Start(); nil != err {
 			log.Fatalf("Error starting as client: %s", err)

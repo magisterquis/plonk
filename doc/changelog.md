@@ -12,3 +12,5 @@ v0.0.1-beta.2
 - Default prompt now has a big `P`
 - Don't allow IDless implant IDs
 - Suggest `setcap` on Linux if listening fails
+- Took a first whack at colorful output; set `PLONK_COLORIZE=true` in the Plonk
+  client's environment to try it
