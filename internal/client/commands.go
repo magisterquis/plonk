@@ -5,7 +5,7 @@ package client
  * Command handlers
  * By J. Stuart McMurray
  * Created 20231206
- * Last Modified 20240120
+ * Last Modified 20240123
  */
 
 import (
@@ -176,7 +176,7 @@ func commandNotFoundHandler(s shell, line string, err error) error {
 	idp := s.V().id.Load()
 	/* If we don't have an implant teed up, probably a typo. */
 	if nil == idp || "" == *idp {
-		s.Logf("I've not heard of that one, sorry.  Need ,seti?")
+		s.Logf("I've not heard of that one, sorry.  Need ,i?")
 		return nil
 	}
 
