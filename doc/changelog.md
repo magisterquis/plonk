@@ -1,6 +1,16 @@
 Changelog
 =========
 
+v0.0.1-beta.3
+-------------
+- Fixed some errors in documentation, there may still be exercises left for the
+  reader
+- In a bid to help the ADD'd portion of the userbase, the default template now
+  only waits 2s between requests for tasking
+- `/o` shouldn't time out on long-lived connections anymore
+- Only one Ctrl+C needed if something's connected via `/o`, but two also does
+  it
+
 v0.0.1-beta.2
 -------------
 - Changelog added
