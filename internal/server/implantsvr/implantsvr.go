@@ -6,7 +6,7 @@ package implantsvr
  * Listen for and handle implant requests
  * By J. Stuart McMurray
  * Created 20231207
- * Last Modified 20231227
+ * Last Modified 20240123
  */
 
 import (
@@ -53,10 +53,11 @@ type Server struct {
 	httpl  plog.AtomicString /* HTTP Listener, for testing. */
 	httpsl plog.AtomicString /* Ditto, for HTTPS. */
 
-	ew  waiter.Waiter[error]
-	svr *http.Server
-	fh  http.Handler /* Static files handler. */
-	cg  func(*tls.ClientHelloInfo) (*tls.Certificate, error)
+	ew   waiter.Waiter[error]
+	svr  *http.Server
+	fh   http.Handler /* Static files handler. */
+	cg   func(*tls.ClientHelloInfo) (*tls.Certificate, error)
+	sdch <-chan struct{} /* Closed on shutdown. */
 
 	noSeen bool     /* For testing. */
 	seen   sync.Map /* Seen implants. */
@@ -157,6 +158,11 @@ func (s *Server) Start() error {
 			httpDebugLogREs...,
 		),
 	}
+
+	/* Set up a channel to be closed when the server shuts down. */
+	sdch := make(chan struct{})
+	s.sdch = sdch
+	s.svr.RegisterOnShutdown(sync.OnceFunc(func() { close(sdch) }))
 
 	/* Start service on whatever listeners are listening. */
 	for _, l := range []net.Listener{httpl, httpsl} {

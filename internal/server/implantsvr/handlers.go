@@ -23,6 +23,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/magisterquis/plonk/internal/def"
@@ -130,18 +131,19 @@ func (s *Server) handleOutput(w http.ResponseWriter, r *http.Request) {
 
 	/* Read chunks of output and make available for logging. */
 	var (
-		och = make(chan string)
-		ech = make(chan error)
+		och      = make(chan string)
+		ech      = make(chan error)
+		shutdown atomic.Bool
 	)
 	go func() {
 		defer close(och)
 		defer close(ech)
 		var (
-			rbuf = make([]byte, 1024)
+			rbuf = make([]byte, def.OutputBuffer)
 			err  error
 			n    int
 		)
-		for nil == err {
+		for nil == err && !shutdown.Load() {
 			n, err = r.Body.Read(rbuf)
 			if 0 != n {
 				och <- string(rbuf[:n])
@@ -180,13 +182,15 @@ func (s *Server) handleOutput(w http.ResponseWriter, r *http.Request) {
 		rerr   error
 	)
 	defer ticker.Stop()
-	for nil == rerr {
+	for nil == rerr && !shutdown.Load() {
 		/* Wait until something happens. */
 		select {
 		case tick = <-ticker.C:
 		case rerr = <-ech:
 		case o := <-och:
 			obuf.WriteString(o)
+		case <-s.sdch: /* Server shutting down. */
+			shutdown.Store(true)
 		}
 		/* If it's been long enough, send the output. */
 		if 0 != obuf.Len() && (!tick.IsZero() ||
@@ -199,8 +203,35 @@ func (s *Server) handleOutput(w http.ResponseWriter, r *http.Request) {
 	}
 	/* Finally got an error.  Make sure the output channel is empty and
 	send the last output back. */
-	for o := range och {
-		obuf.WriteString(o)
+	if shutdown.Load() {
+		/* Get whatever we've got from the channel. */
+		var empty bool
+		for !empty {
+			select {
+			case o, ok := <-och:
+				if ok {
+					obuf.WriteString(o)
+				} else {
+					empty = true
+				}
+			default:
+				empty = true
+			}
+		}
+		/* Drain the channels, as we can't really be sure they're
+		closed without blocking the goroutine above. */
+		go func() {
+			for range ech {
+			}
+		}()
+		go func() {
+			for range och {
+			}
+		}()
+	} else {
+		for o := range och {
+			obuf.WriteString(o)
+		}
 	}
 	if 0 != obuf.Len() {
 		logOutput(obuf.String())

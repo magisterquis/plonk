@@ -5,7 +5,7 @@ package implantsvr
  * Listen for and handle implant requests
  * By J. Stuart McMurray
  * Created 20231207
- * Last Modified 20231213
+ * Last Modified 20240123
  */
 
 import (
@@ -17,7 +17,11 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/magisterquis/plonk/internal/def"
 	"github.com/magisterquis/plonk/internal/server/state"
@@ -156,4 +160,84 @@ func TestServer_DefaultFile(t *testing.T) {
 		t.Errorf("Second body not empty: %s", b)
 	}
 	res.Body.Close()
+}
+
+func TestServerStop(t *testing.T) {
+	var (
+		s, lb  = newTestServer(t)
+		id     = "kittens"
+		pr, pw = io.Pipe()
+		u      = "http://" + s.HTTPListenAddr() + path.Join(
+			"/",
+			def.OutputPath,
+			id,
+		)
+	)
+	defer pw.Close()
+	s.noSeen = false
+
+	/* Send off a long-lived request. */
+	var wg sync.WaitGroup
+	wg.Add(1)
+	var (
+		res  *http.Response
+		rerr error
+	)
+	go func() {
+		defer wg.Done()
+		res, rerr = http.Post(u, "", pr)
+	}()
+
+	/* Make sure we've got a connected implant. */
+	for 0 == lb.Len() {
+		time.Sleep(time.Nanosecond)
+	}
+
+	/* Make sure shutdown doesn't block. */
+	if err := s.Stop(nil); nil != err {
+		t.Errorf("Error stopping server: %s", err)
+	}
+
+	/* Make sure the client's disconnected. */
+	wg.Wait()
+	if nil != rerr {
+		t.Errorf("Error sending request: %s", rerr)
+	}
+	defer res.Body.Close()
+	wantStatus := http.StatusOK
+	if got := res.StatusCode; got != wantStatus {
+		t.Errorf(
+			"Incorrect status: got:%d want:%d",
+			got,
+			wantStatus,
+		)
+	}
+	wantLogs := []string{
+		`{"time":"","level":"INFO","msg":"New implant","id":"kittens"}`,
+		`{"time":"","level":"DEBUG","msg":"Output","id":"kittens",` +
+			`"host":"127.0.0.1:0","method":"POST",` +
+			`"remote_address":"127.0.0.1:0",` +
+			`"url":"/o/kittens"}`,
+	}
+	gotLogs := slices.DeleteFunc(
+		strings.Split(lb.String(), "\n"),
+		func(s string) bool { return "" == s },
+	)
+	for i, l := range gotLogs {
+		gotLogs[i] = regexp.MustCompile(
+			`"127\.0\.0\.1:\d{1,5}"`,
+		).ReplaceAllString(
+			plog.RemoveTimestamp(l),
+			`"127.0.0.1:0"`,
+		)
+	}
+	if !slices.Equal(gotLogs, wantLogs) {
+		t.Errorf(
+			"Logs incorrect:\n "+
+				"got:\n%s\n"+
+				"want:\n%s",
+			strings.Join(gotLogs, "\n"),
+			strings.Join(wantLogs, "\n"),
+		)
+	}
 }
