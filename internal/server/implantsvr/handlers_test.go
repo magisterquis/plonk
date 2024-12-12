@@ -529,10 +529,12 @@ func TestHandleStaticFile(t *testing.T) {
 		wantLog      string
 		prep         func(dir string) error
 	}{{
-		wantLog: `{"time":"","level":"INFO","msg":"Static file requested","status_code":200,"size":13,"filename":"","host":"example.com","method":"GET","remote_address":"192.0.2.1:1234","url":"/f"}`,
+		wantBody: "<!doctype html>\n<meta name=\"viewport\" content=\"width=device-width\">\n<pre>",
+		wantLog:  `{"time":"","level":"INFO","msg":"Static file requested","status_code":200,"size":81,"filename":"","host":"example.com","method":"GET","remote_address":"192.0.2.1:1234","url":"/f"}`,
 	}, {
-		path:    "/",
-		wantLog: `{"time":"","level":"INFO","msg":"Static file requested","status_code":200,"size":13,"filename":"/","host":"example.com","method":"GET","remote_address":"192.0.2.1:1234","url":"/f/"}`,
+		path:     "/",
+		wantBody: "<!doctype html>\n<meta name=\"viewport\" content=\"width=device-width\">\n<pre>",
+		wantLog:  `{"time":"","level":"INFO","msg":"Static file requested","status_code":200,"size":81,"filename":"/","host":"example.com","method":"GET","remote_address":"192.0.2.1:1234","url":"/f/"}`,
 	}, {
 		path:         "/d",
 		wantStatus:   http.StatusMovedPermanently,
@@ -542,15 +544,16 @@ func TestHandleStaticFile(t *testing.T) {
 			return os.MkdirAll(filepath.Join(d, "d"), def.DirPerms)
 		},
 	}, {
-		path:    "/d/",
-		wantLog: `{"time":"","level":"INFO","msg":"Static file requested","status_code":200,"size":13,"filename":"/d/","host":"example.com","method":"GET","remote_address":"192.0.2.1:1234","url":"/f/d/"}`,
+		path:     "/d/",
+		wantBody: "<!doctype html>\n<meta name=\"viewport\" content=\"width=device-width\">\n<pre>",
+		wantLog:  `{"time":"","level":"INFO","msg":"Static file requested","status_code":200,"size":81,"filename":"/d/","host":"example.com","method":"GET","remote_address":"192.0.2.1:1234","url":"/f/d/"}`,
 		prep: func(d string) error {
 			return os.MkdirAll(filepath.Join(d, "d"), def.DirPerms)
 		},
 	}, {
 		path:     "/dlist/",
-		wantBody: "<a href=\"f1\">f1</a>\n<a href=\"f2\">f2</a>",
-		wantLog:  `{"time":"","level":"INFO","msg":"Static file requested","status_code":200,"size":53,"filename":"/dlist/","host":"example.com","method":"GET","remote_address":"192.0.2.1:1234","url":"/f/dlist/"}`,
+		wantBody: "<!doctype html>\n<meta name=\"viewport\" content=\"width=device-width\">\n<pre>\n<a href=\"f1\">f1</a>\n<a href=\"f2\">f2</a>",
+		wantLog:  `{"time":"","level":"INFO","msg":"Static file requested","status_code":200,"size":121,"filename":"/dlist/","host":"example.com","method":"GET","remote_address":"192.0.2.1:1234","url":"/f/dlist/"}`,
 		prep: func(d string) error {
 			dn := filepath.Join(d, "dlist")
 			if err := os.MkdirAll(dn, def.DirPerms); nil != err {

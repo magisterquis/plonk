@@ -24,3 +24,4 @@ v0.0.1-beta.2
 - Simplified commands altogether
 - Added ,i -next|-last for easier implant selection
 - Added `,h` topics for other commands
+- Updated dependencies
