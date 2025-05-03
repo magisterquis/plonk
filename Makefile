@@ -2,11 +2,11 @@
 # Build Plonk
 # By J. Stuart McMurray
 # Created 20230429
-# Last Modified 20240120
+# Last Modified 20250303
 
 BINNAME!=basename $$(pwd)
 BUILDFLAGS=-trimpath -ldflags "-w -s"
-VETFLAGS=-printf.funcs 'debugf,errorf,erorrlogf,logf,printf'
+VETFLAGS=-printf.funcs 'debugf,errorf,errorlogf,logf,printf'
 TESTMANYCOUNT=100
 
 all: test build
