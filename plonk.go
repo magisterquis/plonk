@@ -6,7 +6,7 @@ package main
  * Really simple HTTP-based C2 server
  * By J. Stuart McMurray
  * Created 20231104
- * Last Modified 20240118
+ * Last Modified 20250503
  */
 
 import (
@@ -35,11 +35,12 @@ import (
 
 /* Compile-time-settable defaults. */
 var (
-	DefaultDir       = "plonk.d" /* Just basename. */
+	DefaultDir       = "plonk.d"         /* Just basename. */
+	DefaultFavorites = "plonk_favorites" /* Relative to $HOME. */
 	DefaultHTTPAddr  = ""
 	DefaultHTTPSAddr = "0.0.0.0:443"
-	DefaultName      = ""     /* Operator name. */
 	DefaultMaxExfil  = "100M" /* Default max per-file exfil: 100MB. */
+	DefaultName      = ""     /* Operator name. */
 )
 
 func main() {
@@ -95,6 +96,11 @@ func main() {
 			"letsencrypt-email",
 			"",
 			"Optional email `address` to use with Let's Encrypt",
+		)
+		favorites = flag.String(
+			"favorites",
+			defaultFavorites(),
+			"Favorites (,f) command txtar archive",
 		)
 	)
 	flag.TextVar(
@@ -200,10 +206,11 @@ Options:
 
 		/* We look clientish, connect and go. */
 		c := &client.Client{
-			Dir:      *dir,
-			Debug:    *debug,
-			Name:     *opName,
-			Colorize: "" != os.Getenv(def.ColorEnvVar),
+			Dir:       *dir,
+			Debug:     *debug,
+			Name:      *opName,
+			Colorize:  "" != os.Getenv(def.ColorEnvVar),
+			Favorites: *favorites,
 		}
 		if err := c.Start(); nil != err {
 			log.Fatalf("Error starting as client: %s", err)
@@ -325,4 +332,19 @@ func defaultName() string {
 
 	/* Back to returning the Unix user ID number. */
 	return uids
+}
+
+// defaultFavorites returns the default location for the favorites file, which
+// will DefaultFavorites, if it's an absolute path, or DefaultFavorites in
+// $HOME if not.
+func defaultFavorites() string {
+	if filepath.IsAbs(DefaultFavorites) {
+		return DefaultFavorites
+	}
+	hd, err := os.UserHomeDir()
+	if nil != err {
+		log.Printf("Unable to get home directory: %s", err)
+		hd = "" /* For just in case. */
+	}
+	return filepath.Join(hd, DefaultFavorites)
 }

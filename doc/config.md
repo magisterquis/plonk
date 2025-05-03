@@ -11,13 +11,14 @@ Compile-time-settable Defaults
 The following can be set at compile-time using `-ldflags "-X main.DefaultFoo=bar"`
 to change Plonk's defaults.
 
-Name                   | Default       | Description
------------------------|---------------|------------
-`main.DefaultDir`      |`plonk.d`      | [Plonk directory](../README.md#directory) basename; may also be an absolute path
-`main.DefaultHTTPAddr` | _none_        | HTTP listen address
-`main.DefaultHTTPSAddr`| `0.0.0.0:443` | HTTPS listen address
-`main.DefaultName`     | _none_        | Operator name
-`main.DefaultMaxExfil` | `100M`        | Maximum [exfil](./protocol.md#exfil-p) size
+Name                   | Default           | Description
+-----------------------|-------------------|------------
+`main.DefaultDir`      |`plonk.d`          | [Plonk directory](../README.md#directory) basename; may also be an absolute path
+`DefaultFavorites`     | `plonk_favorites` | [Template](https://pkg.go.dev/text/template#section-documentation) file for `,f`
+`main.DefaultHTTPAddr` | _none_            | HTTP listen address
+`main.DefaultHTTPSAddr`| `0.0.0.0:443`     | HTTPS listen address
+`main.DefaultName`     | _none_            | Operator name
+`main.DefaultMaxExfil` | `100M`            | Maximum [exfil](./protocol.md#exfil-p) size
 
 Files
 -----

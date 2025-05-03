@@ -1,6 +1,10 @@
 Changelog
 =========
 
+`jeff`
+------
+- Added `,f`
+
 v0.0.1-beta.3
 -------------
 - Updated dependencies
