@@ -5,6 +5,7 @@ Changelog
 ------
 - Added `,f`
 - Updated [`Makefile`](../Makefile) and added [tests](../t) from toolskel
+- Updated dependencies
 
 v0.0.1-beta.3
 -------------
