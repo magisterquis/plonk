@@ -4,6 +4,7 @@ Changelog
 `jeff`
 ------
 - Added `,f`
+- Updated [`Makefile`](../Makefile) and added [tests](../t) from toolskel
 
 v0.0.1-beta.3
 -------------
