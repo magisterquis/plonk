@@ -5,7 +5,7 @@ package main
  * Tests for env.go
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230523
+ * Last Modified 20260715
  */
 
 import (
@@ -139,7 +139,6 @@ func TestParseEnvInt(t *testing.T) {
 		have:    "-1",
 		wantErr: true,
 	}} {
-		c := c /* :C */
 		t.Run(c.have, func(t *testing.T) {
 			got, err := parseEnvInt(c.have)
 			switch {

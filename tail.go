@@ -5,7 +5,7 @@ package main
  * Tail the logfile
  * By J. Stuart McMurray
  * Created 20230423
- * Last Modified 20230523
+ * Last Modified 20260715
  */
 
 import (
@@ -21,8 +21,6 @@ import (
 	"strconv"
 	"sync/atomic"
 	"syscall"
-
-	"golang.org/x/sys/unix"
 )
 
 // NextImplantID is a placeholder implantID used to select the next implant
@@ -110,7 +108,7 @@ func GetNextSeenID(logfile string) (string, error) {
 	/* Catch and ignore SIGHUP.  No need to read from the channel, as the
 	send will be non-blocking anyway. */
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, unix.SIGHUP)
+	signal.Notify(ch, syscall.SIGHUP)
 	defer func() {
 		signal.Stop(ch)
 		close(ch)

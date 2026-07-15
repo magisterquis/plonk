@@ -5,7 +5,7 @@ package main
  * Interact with an implant
  * By J. Stuart McMurray
  * Created 20230224
- * Last Modified 20230423
+ * Last Modified 20260715
  */
 
 import (
@@ -145,11 +145,11 @@ func watchOutput(id, logfile string, ech chan<- error, start <-chan struct{}) {
 	<-start
 
 	/* Watch for output and callback lines. */
-	var taskQPrefix = []byte(fmt.Sprintf(
+	var taskQPrefix = fmt.Appendf(nil,
 		"%s %q",
 		TaskMessagePrefix,
 		id,
-	))
+	)
 	for {
 		/* Get the next line. */
 		line, err := reader.ReadLine()

@@ -5,7 +5,7 @@ package main
  * Handle logging
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230523
+ * Last Modified 20260715
  */
 
 import (
@@ -17,9 +17,7 @@ import (
 	"os/signal"
 	"reflect"
 	"sync"
-
-	"golang.org/x/exp/maps"
-	"golang.org/x/sys/unix"
+	"syscall"
 )
 
 // MessageType is used to tag logged messages
@@ -51,12 +49,12 @@ var (
 // LogSignals deletes all seenIDs on SIGHUP.
 func LogSignals() {
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, unix.SIGHUP)
+	signal.Notify(ch, syscall.SIGHUP)
 	go func() {
 		for range ch {
 			seenIDsL.Lock()
 			n := len(seenIDs)
-			maps.Clear(seenIDs)
+			clear(seenIDs)
 			seenIDsL.Unlock()
 			if 0 == n {
 				log.Printf(

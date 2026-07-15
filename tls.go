@@ -5,7 +5,7 @@ package main
  * TLS config and cert-handling
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230228
+ * Last Modified 20260715
  */
 
 import (
@@ -27,12 +27,11 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
-	"golang.org/x/exp/maps"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -85,14 +84,14 @@ type selfSignedCert struct {
 func TLSSignals() {
 	/* Cert-forgetting. */
 	hupch := make(chan os.Signal, 1)
-	signal.Notify(hupch, unix.SIGHUP)
+	signal.Notify(hupch, syscall.SIGHUP)
 	go func() {
 		for range hupch {
 			localCacheL.Lock()
 			selfSignedCacheL.Lock()
 			n := len(localCache) + len(selfSignedCache)
-			maps.Clear(localCache)
-			maps.Clear(selfSignedCache)
+			clear(localCache)
+			clear(selfSignedCache)
 			localCacheL.Unlock()
 			selfSignedCacheL.Unlock()
 			if 0 != n {
@@ -114,7 +113,7 @@ func TLSSignals() {
 
 	/* Cert-writing. */
 	usr1ch := make(chan os.Signal, 1)
-	signal.Notify(usr1ch, unix.SIGUSR1)
+	signal.Notify(usr1ch, syscall.SIGUSR1)
 	go func() {
 		for range usr1ch {
 			go saveSelfSignedCerts()
@@ -137,9 +136,6 @@ func MakeTLSConfig(leDomains, wlDomains []string, leEmail string, leStaging bool
 	leCacheDir := Env.LECertDir
 	if leStaging {
 		leCacheDir = filepath.Join(leCacheDir, stagingCacheDir)
-		mgr.Client = &acme.Client{
-			DirectoryURL: stagingURL,
-		}
 		mgr.Client = &acme.Client{DirectoryURL: stagingURL}
 	}
 	leCacheDir = AbsPath(leCacheDir)

@@ -5,7 +5,7 @@ package main
  * Config from environment variables
  * By J. Stuart McMurray
  * Created 20230225
- * Last Modified 20230523
+ * Last Modified 20260715
  */
 
 import (
@@ -13,11 +13,10 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"text/tabwriter"
-
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -75,12 +74,11 @@ func PrintEnv() {
 			v.Field(i).String(),
 		})
 	}
-	slices.SortFunc(vs, func(a, b [2]string) bool {
-		if a[0] == b[0] {
-			/* Unpossible */
-			return a[1] < b[1]
+	slices.SortFunc(vs, func(a, b [2]string) int {
+		if ret := strings.Compare(a[0], b[0]); 0 != ret {
+			return ret
 		}
-		return a[0] < b[0]
+		return strings.Compare(a[1], b[1])
 	})
 
 	/* Make it all nice and tabular. */

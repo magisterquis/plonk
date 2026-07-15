@@ -5,7 +5,7 @@ package main
  * Read and write the task queue.
  * By J. Stuart McMurray
  * Created 20230223
- * Last Modified 20230423
+ * Last Modified 20260715
  */
 
 import (
@@ -17,8 +17,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
-
-	"golang.org/x/sys/unix"
+	"syscall"
 )
 
 // TaskQ holds the per-implant task queue.  There's probably a more efficient
@@ -35,7 +34,7 @@ var (
 func TaskQSignals() {
 	/* Reopen on SIGHUP. */
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, unix.SIGHUP)
+	signal.Notify(ch, syscall.SIGHUP)
 
 	go func() {
 		for range ch {
@@ -95,7 +94,7 @@ func ReadQ() (TaskQ, error) {
 
 	/* Also lock it away from other programs. */
 	fd := int(taskF.Fd())
-	if err := unix.Flock(fd, unix.LOCK_EX); nil != err {
+	if err := syscall.Flock(fd, syscall.LOCK_EX); nil != err {
 		writeAndUnlock(true, false, nil)
 		return nil, fmt.Errorf("locking: %w", err)
 	}
@@ -165,9 +164,9 @@ func writeAndUnlock(unMutex, unFlock bool, q TaskQ) error {
 
 	/* Unlock locks. */
 	if unFlock {
-		if err := unix.Flock(
+		if err := syscall.Flock(
 			int(taskF.Fd()),
-			unix.LOCK_UN,
+			syscall.LOCK_UN,
 		); nil != err {
 			rerr = errors.Join(fmt.Errorf(
 				"releasing flock: %w",

@@ -5,7 +5,7 @@ package main
  * Tests for tail.go
  * By J. Stuart McMurray
  * Created 20230423
- * Last Modified 20230523
+ * Last Modified 20260715
  */
 
 import (
@@ -33,7 +33,6 @@ func TestGetIDFromSeenLine(t *testing.T) {
 		ID: "kittens",
 		Ok: true,
 	}} {
-		c := c /* :C */
 		t.Run(c.ID, func(t *testing.T) {
 			t.Parallel()
 			id, ok := getIDFromSeenLine([]byte(c.Have))
