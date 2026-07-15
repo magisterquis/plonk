@@ -5,17 +5,16 @@ package subcom
  * List registered subcommands
  * By J. Stuart McMurray
  * Created 20231020
- * Last Modified 20231216
+ * Last Modified 20260715
  */
 
 import (
 	"bytes"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 	"text/tabwriter"
-
-	"golang.org/x/exp/maps"
 )
 
 // Specs returns the Specs added to c.  The caller owns the returned slice.
@@ -33,8 +32,7 @@ func (c *Cdr[T]) Table() string {
 	defer c.l.RUnlock()
 
 	/* Get the registered commands. */
-	names := maps.Keys(c.specs)
-	sort.Strings(names)
+	names := slices.Sorted(maps.Keys(c.specs))
 
 	/* Format nicely. */
 	var buf bytes.Buffer

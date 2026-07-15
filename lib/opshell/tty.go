@@ -5,7 +5,7 @@ package opshell
  * Handle TTY things
  * By J. Stuart McMurray
  * Created 20231112
- * Last Modified 20231207
+ * Last Modified 20260715
  */
 
 import (
@@ -13,8 +13,8 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"syscall"
 
-	"golang.org/x/sys/unix"
 	"golang.org/x/term"
 )
 
@@ -54,7 +54,7 @@ func (s *Shell[T]) ResetTerm() error {
 func (s *Shell[T]) handleSIGWINCH(fd int) {
 	/* Watch for the signal. */
 	ch := make(chan os.Signal, 10)
-	signal.Notify(ch, unix.SIGWINCH)
+	signal.Notify(ch, syscall.SIGWINCH)
 
 	/* Every time we're signalled, resize. */
 	for range ch {

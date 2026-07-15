@@ -1,16 +1,17 @@
 package operatorsvr
 
 /*
- * handle.go
+ * handle_test.go
  * Tests for handle.go
  * By J. Stuart McMurray
  * Created 20231205
- * Last Modified 20231207
+ * Last Modified 20260715
  */
 
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net"
 	"slices"
 	"strings"
@@ -20,7 +21,6 @@ import (
 
 	"github.com/magisterquis/plonk/internal/def"
 	"github.com/magisterquis/plonk/lib/estream"
-	"golang.org/x/exp/maps"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -123,8 +123,7 @@ func TestHandleConn_FastDisconnects(t *testing.T) {
 	for gotNMsg < wantNMsg {
 		select {
 		case <-time.After(time.Until(deadline)):
-			left := maps.Keys(logs)
-			slices.Sort(left)
+			left := slices.Sorted(maps.Keys(logs))
 			t.Fatalf(
 				"Got %d/%d logs in %s, remaining:\n%s",
 				gotNMsg,

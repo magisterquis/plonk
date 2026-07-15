@@ -6,7 +6,7 @@ package main
  * Really simple HTTP-based C2 server
  * By J. Stuart McMurray
  * Created 20231104
- * Last Modified 20250503
+ * Last Modified 20260715
  */
 
 import (
@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"syscall"
 
 	"github.com/magisterquis/plonk/internal/client"
 	"github.com/magisterquis/plonk/internal/def"
@@ -30,7 +31,6 @@ import (
 	"github.com/magisterquis/plonk/internal/server/perms"
 	"github.com/magisterquis/plonk/lib/humansize"
 	"github.com/magisterquis/plonk/lib/plog"
-	"golang.org/x/sys/unix"
 )
 
 /* Compile-time-settable defaults. */
@@ -249,7 +249,7 @@ Options:
 		/* On Linux, EACCES is a good sign we can't listen on 443. */
 		var noe *net.OpError
 		if "linux" == runtime.GOOS &&
-			errors.Is(err, unix.EACCES) &&
+			errors.Is(err, syscall.EACCES) &&
 			errors.As(err, &noe) &&
 			"listen" == noe.Op {
 			/* On Linux if we can't bind to a port it's probably that we're
@@ -265,7 +265,7 @@ Options:
 
 	/* Kill the server nicely on Ctrl+C et al. */
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, unix.SIGINT, unix.SIGTERM)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-ch
 		signal.Stop(ch)

@@ -5,17 +5,17 @@ package client
  * Help command handler
  * By J. Stuart McMurray
  * Created 20231218
- * Last Modified 20240120
+ * Last Modified 20260715
  */
 
 import (
 	_ "embed"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"text/tabwriter"
 
-	"golang.org/x/exp/maps"
 	"golang.org/x/tools/txtar"
 )
 
@@ -95,16 +95,9 @@ func printTopic(s shell, topic string) {
 	if topic == topicsTopic {
 		s.Printf("Here's what we know:\n\n")
 		/* Make a nice sorted table of help topic descriptions. */
-		ts := maps.Keys(helpTopics)
-		slices.SortFunc(ts, func(a, b string) int {
-			return strings.Compare(
-				strings.ToLower(a),
-				strings.ToLower(b),
-			)
-		})
 		tw := tabwriter.NewWriter(s, 0, 8, 1, ' ', 0)
 		defer tw.Flush()
-		for _, t := range ts {
+		for _, t := range slices.Sorted(maps.Keys(helpTopics)) {
 			fmt.Fprintf(
 				tw,
 				"%s\t- %s\n",

@@ -5,7 +5,7 @@ package eztls
  * Marshal and unmarshal certs for caching.
  * By J. Stuart McMurray
  * Created 20231209
- * Last Modified 20231209
+ * Last Modified 20260715
  */
 
 import (
@@ -213,6 +213,7 @@ func validCert(der [][]byte, key crypto.Signer, now time.Time) (leaf *x509.Certi
 		if !ok {
 			return nil, errors.New("private/public key type mismatch")
 		}
+		//lint:ignore SA1019 Maintenance mode
 		if pub.X.Cmp(prv.X) != 0 || pub.Y.Cmp(prv.Y) != 0 {
 			return nil, errors.New("private/public key mismatch")
 		}

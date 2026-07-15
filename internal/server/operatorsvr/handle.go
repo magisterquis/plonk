@@ -5,7 +5,7 @@ package operatorsvr
  * Handle an operator conn
  * By J. Stuart McMurray
  * Created 20231129
- * Last Modified 20231207
+ * Last Modified 20260715
  */
 
 import (
@@ -13,12 +13,12 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"syscall"
 	"time"
 
 	"github.com/magisterquis/plonk/internal/def"
 	"github.com/magisterquis/plonk/lib/estream"
 	"github.com/magisterquis/plonk/lib/plog"
-	"golang.org/x/sys/unix"
 )
 
 // acceptConns accepts op conns and sends them off for handling.
@@ -39,7 +39,8 @@ func (s *Server) acceptConns() {
 		}
 
 		/* If we've too many connections, wait and try again. */
-		if errors.Is(err, unix.EMFILE) || errors.Is(err, unix.ENFILE) {
+		if errors.Is(err, syscall.EMFILE) ||
+			errors.Is(err, syscall.ENFILE) {
 			plog.WarnError(
 				s.SL,
 				def.LMTemporaryAcceptError,
@@ -146,7 +147,7 @@ func (s *Server) handleConn(c *net.UnixConn) {
 		errors.Is(err, io.EOF) ||
 		errors.Is(err, io.ErrClosedPipe) ||
 		errors.Is(err, net.ErrClosed) ||
-		errors.Is(err, unix.EPIPE) {
+		errors.Is(err, syscall.EPIPE) {
 		/* Not really an error, as such. */
 		oc.SL().Info(def.LMOpDisconnected)
 	} else {

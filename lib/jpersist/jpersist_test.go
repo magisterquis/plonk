@@ -5,16 +5,15 @@ package jpersist
  * Persist as JSON to disk
  * By J. Stuart McMurray
  * Created 20231007
- * Last Modified 20231010
+ * Last Modified 20260715
  */
 
 import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"syscall"
 	"testing"
-
-	"golang.org/x/sys/unix"
 )
 
 const testFileName = "managed.json"
@@ -101,8 +100,8 @@ func TestManager_FDLeak(t *testing.T) {
 		t.Skipf("Short test requested")
 	}
 	/* Figure out how many files we can open. */
-	var lim unix.Rlimit
-	if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &lim); nil != err {
+	var lim syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim); nil != err {
 		t.Fatalf("Error getting NOFILE rlimit: %s", err)
 	}
 	nTry := lim.Max + 10
